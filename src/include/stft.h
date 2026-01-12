@@ -25,8 +25,9 @@ typedef struct {
 } knf_stft_result;
 
 void knf_stft_config_default(knf_stft_config *cfg);
-bool knf_stft_compute(const knf_stft_config *cfg, const float *data, int32_t n,
-                      knf_stft_result *out);
+[[nodiscard]] bool knf_stft_compute(const knf_stft_config *cfg,
+                                    const float *data, int32_t n,
+                                    knf_stft_result *out);
 void knf_stft_result_free(knf_stft_result *res);
 
 #endif // KALDI_NATIVE_FBANK_CSRC_STFT_H_

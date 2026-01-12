@@ -43,13 +43,14 @@ typedef struct {
   int32_t features_cap;
 } knf_online_feature;
 
-bool knf_online_fbank_create(const knf_fbank_opts *opts,
-                             knf_online_feature *out);
-bool knf_online_mfcc_create(const knf_mfcc_opts *opts, knf_online_feature *out);
-bool knf_online_raw_create(const knf_raw_audio_opts *opts,
-                           knf_online_feature *out);
-bool knf_online_whisper_create(const knf_whisper_opts *opts,
-                               knf_online_feature *out);
+[[nodiscard]] bool knf_online_fbank_create(const knf_fbank_opts *opts,
+                                           knf_online_feature *out);
+[[nodiscard]] bool knf_online_mfcc_create(const knf_mfcc_opts *opts,
+                                          knf_online_feature *out);
+[[nodiscard]] bool knf_online_raw_create(const knf_raw_audio_opts *opts,
+                                         knf_online_feature *out);
+[[nodiscard]] bool knf_online_whisper_create(const knf_whisper_opts *opts,
+                                             knf_online_feature *out);
 
 void knf_online_feature_destroy(knf_online_feature *f);
 void knf_online_accept_waveform(knf_online_feature *f, float sampling_rate,

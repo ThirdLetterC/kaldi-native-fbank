@@ -20,8 +20,8 @@ void knf_whisper_opts_default(knf_whisper_opts *opts) {
   opts->dim = 80;
 }
 
-bool knf_whisper_computer_create(const knf_whisper_opts *opts,
-                                 knf_whisper_computer *out) {
+[[nodiscard]] bool knf_whisper_computer_create(const knf_whisper_opts *opts,
+                                               knf_whisper_computer *out) {
   memset(out, 0, sizeof(*out));
   out->opts = *opts;
   knf_mel_opts mel_opts;
@@ -55,15 +55,15 @@ const knf_frame_opts *knf_whisper_frame_opts(const knf_whisper_computer *c) {
 }
 
 int32_t knf_whisper_dim(const knf_whisper_computer *c) { return c->opts.dim; }
-int knf_whisper_need_raw_log_energy(const knf_whisper_computer *c) {
-  (void)c;
-  return 0;
+bool knf_whisper_need_raw_log_energy(
+    [[maybe_unused]] const knf_whisper_computer *c) {
+  return false;
 }
 
-void knf_whisper_compute(knf_whisper_computer *c, float signal_raw_log_energy,
-                         float vtln_warp, float *signal_frame, float *feature) {
-  (void)signal_raw_log_energy;
-  (void)vtln_warp;
+void knf_whisper_compute(knf_whisper_computer *c,
+                         [[maybe_unused]] float signal_raw_log_energy,
+                         [[maybe_unused]] float vtln_warp, float *signal_frame,
+                         float *feature) {
   int32_t n_fft = knf_window_size(&c->opts.frame_opts);
   knf_rfft_compute(c->rfft, signal_frame);
   knf_compute_power_spectrum(signal_frame, n_fft);

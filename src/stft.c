@@ -53,8 +53,9 @@ static void knf_pad_constant(const float *data, int32_t n, int32_t pad,
   memcpy(out + pad, data, sizeof(float) * n);
 }
 
-bool knf_stft_compute(const knf_stft_config *cfg, const float *data, int32_t n,
-                      knf_stft_result *out) {
+[[nodiscard]] bool knf_stft_compute(const knf_stft_config *cfg,
+                                    const float *data, int32_t n,
+                                    knf_stft_result *out) {
   KNF_CHECK(cfg != nullptr);
   KNF_CHECK(data != nullptr);
   if (cfg->n_fft <= 0 || cfg->hop_length <= 0 || cfg->win_length <= 0) {

@@ -20,8 +20,10 @@ void knf_istft_config_default(knf_istft_config *cfg) {
   cfg->normalized = false;
 }
 
-bool knf_istft_compute(const knf_istft_config *cfg, const knf_stft_result *stft,
-                       float **out_samples, int32_t *num_samples) {
+[[nodiscard]] bool knf_istft_compute(const knf_istft_config *cfg,
+                                     const knf_stft_result *stft,
+                                     float **out_samples,
+                                     int32_t *num_samples) {
   KNF_CHECK(cfg != nullptr);
   KNF_CHECK(stft != nullptr);
   int32_t n_fft = cfg->n_fft;

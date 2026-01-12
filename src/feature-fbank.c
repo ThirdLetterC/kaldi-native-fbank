@@ -20,8 +20,8 @@ void knf_fbank_opts_default(knf_fbank_opts *opts) {
   opts->use_power = true;
 }
 
-bool knf_fbank_computer_create(const knf_fbank_opts *opts,
-                               knf_fbank_computer *out) {
+[[nodiscard]] bool knf_fbank_computer_create(const knf_fbank_opts *opts,
+                                             knf_fbank_computer *out) {
   memset(out, 0, sizeof(*out));
   out->opts = *opts;
   if (opts->energy_floor > 0.0f) {
@@ -62,10 +62,10 @@ bool knf_fbank_need_raw_log_energy(const knf_fbank_computer *c) {
 }
 
 void knf_fbank_compute(knf_fbank_computer *c, float signal_raw_log_energy,
-                       float vtln_warp, float *signal_frame, float *feature) {
+                       [[maybe_unused]] float vtln_warp, float *signal_frame,
+                       float *feature) {
   const knf_fbank_opts *opts = &c->opts;
   int32_t padded = knf_padded_window_size(&opts->frame_opts);
-  (void)vtln_warp; // vtln not used in simplified version
 
   if (opts->use_energy && !opts->raw_energy) {
     float energy = knf_inner_product(signal_frame, signal_frame, padded);

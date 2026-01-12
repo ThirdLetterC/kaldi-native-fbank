@@ -27,9 +27,9 @@ typedef struct {
 } knf_mel_banks;
 
 void knf_mel_opts_default(knf_mel_opts *opts);
-knf_mel_banks *knf_mel_banks_create(const knf_mel_opts *opts,
-                                    const knf_frame_opts *frame_opts,
-                                    float vtln_warp);
+[[nodiscard]] knf_mel_banks *
+knf_mel_banks_create(const knf_mel_opts *opts, const knf_frame_opts *frame_opts,
+                     float vtln_warp);
 void knf_mel_banks_destroy(knf_mel_banks *banks);
 void knf_mel_compute(const knf_mel_banks *banks, const float *fft_energies,
                      float *mel_energies_out);

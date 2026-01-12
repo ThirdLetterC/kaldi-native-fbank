@@ -18,7 +18,7 @@ typedef struct {
   float *work; // size n
 } knf_rfft;
 
-knf_rfft *knf_rfft_create(int32_t n, bool inverse);
+[[nodiscard]] knf_rfft *knf_rfft_create(int32_t n, bool inverse);
 void knf_rfft_destroy(knf_rfft *fft);
 void knf_rfft_compute(knf_rfft *fft, float *in_out);
 

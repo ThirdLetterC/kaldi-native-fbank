@@ -30,8 +30,8 @@ typedef struct {
 } knf_mfcc_computer;
 
 void knf_mfcc_opts_default(knf_mfcc_opts *opts);
-bool knf_mfcc_computer_create(const knf_mfcc_opts *opts,
-                              knf_mfcc_computer *out);
+[[nodiscard]] bool knf_mfcc_computer_create(const knf_mfcc_opts *opts,
+                                            knf_mfcc_computer *out);
 void knf_mfcc_computer_destroy(knf_mfcc_computer *c);
 const knf_frame_opts *knf_mfcc_frame_opts(const knf_mfcc_computer *c);
 int32_t knf_mfcc_dim(const knf_mfcc_computer *c);

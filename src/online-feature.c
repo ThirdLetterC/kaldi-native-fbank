@@ -138,8 +138,8 @@ static void knf_online_compute_whisper(void *c, float e, float v, float *w,
   knf_whisper_compute((knf_whisper_computer *)c, e, v, w, f);
 }
 
-bool knf_online_fbank_create(const knf_fbank_opts *opts,
-                             knf_online_feature *out) {
+[[nodiscard]] bool knf_online_fbank_create(const knf_fbank_opts *opts,
+                                           knf_online_feature *out) {
   knf_fbank_computer *c =
       (knf_fbank_computer *)calloc(1, sizeof(knf_fbank_computer));
   if (c == nullptr)
@@ -158,8 +158,8 @@ bool knf_online_fbank_create(const knf_fbank_opts *opts,
   return true;
 }
 
-bool knf_online_mfcc_create(const knf_mfcc_opts *opts,
-                            knf_online_feature *out) {
+[[nodiscard]] bool knf_online_mfcc_create(const knf_mfcc_opts *opts,
+                                          knf_online_feature *out) {
   knf_mfcc_computer *c =
       (knf_mfcc_computer *)calloc(1, sizeof(knf_mfcc_computer));
   if (c == nullptr)
@@ -178,8 +178,8 @@ bool knf_online_mfcc_create(const knf_mfcc_opts *opts,
   return true;
 }
 
-bool knf_online_raw_create(const knf_raw_audio_opts *opts,
-                           knf_online_feature *out) {
+[[nodiscard]] bool knf_online_raw_create(const knf_raw_audio_opts *opts,
+                                         knf_online_feature *out) {
   knf_raw_audio_computer *c =
       (knf_raw_audio_computer *)calloc(1, sizeof(knf_raw_audio_computer));
   if (c == nullptr)
@@ -198,8 +198,8 @@ bool knf_online_raw_create(const knf_raw_audio_opts *opts,
   return true;
 }
 
-bool knf_online_whisper_create(const knf_whisper_opts *opts,
-                               knf_online_feature *out) {
+[[nodiscard]] bool knf_online_whisper_create(const knf_whisper_opts *opts,
+                                             knf_online_feature *out) {
   knf_whisper_computer *c =
       (knf_whisper_computer *)calloc(1, sizeof(knf_whisper_computer));
   if (c == nullptr)

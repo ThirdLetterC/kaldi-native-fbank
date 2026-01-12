@@ -27,8 +27,8 @@ typedef struct {
 } knf_fbank_computer;
 
 void knf_fbank_opts_default(knf_fbank_opts *opts);
-bool knf_fbank_computer_create(const knf_fbank_opts *opts,
-                               knf_fbank_computer *out);
+[[nodiscard]] bool knf_fbank_computer_create(const knf_fbank_opts *opts,
+                                             knf_fbank_computer *out);
 void knf_fbank_computer_destroy(knf_fbank_computer *c);
 const knf_frame_opts *knf_fbank_frame_opts(const knf_fbank_computer *c);
 int32_t knf_fbank_dim(const knf_fbank_computer *c);

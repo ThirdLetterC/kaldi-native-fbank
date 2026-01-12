@@ -129,9 +129,9 @@ static bool knf_init_weights(const knf_mel_opts *opts,
   return true;
 }
 
-knf_mel_banks *knf_mel_banks_create(const knf_mel_opts *opts,
-                                    const knf_frame_opts *frame_opts,
-                                    float vtln_warp) {
+[[nodiscard]] knf_mel_banks *
+knf_mel_banks_create(const knf_mel_opts *opts, const knf_frame_opts *frame_opts,
+                     float vtln_warp) {
   auto banks = (knf_mel_banks *)calloc(1, sizeof(knf_mel_banks));
   if (banks == nullptr)
     return nullptr;

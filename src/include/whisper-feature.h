@@ -20,12 +20,12 @@ typedef struct {
 } knf_whisper_computer;
 
 void knf_whisper_opts_default(knf_whisper_opts *opts);
-bool knf_whisper_computer_create(const knf_whisper_opts *opts,
-                                 knf_whisper_computer *out);
+[[nodiscard]] bool knf_whisper_computer_create(const knf_whisper_opts *opts,
+                                               knf_whisper_computer *out);
 void knf_whisper_computer_destroy(knf_whisper_computer *c);
 const knf_frame_opts *knf_whisper_frame_opts(const knf_whisper_computer *c);
 int32_t knf_whisper_dim(const knf_whisper_computer *c);
-int knf_whisper_need_raw_log_energy(const knf_whisper_computer *c);
+bool knf_whisper_need_raw_log_energy(const knf_whisper_computer *c);
 void knf_whisper_compute(knf_whisper_computer *c, float signal_raw_log_energy,
                          float vtln_warp, float *signal_frame, float *feature);
 

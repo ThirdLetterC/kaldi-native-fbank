@@ -39,8 +39,8 @@ void knf_mfcc_opts_default(knf_mfcc_opts *opts) {
   opts->energy_floor = 0.0f;
 }
 
-bool knf_mfcc_computer_create(const knf_mfcc_opts *opts,
-                              knf_mfcc_computer *out) {
+[[nodiscard]] bool knf_mfcc_computer_create(const knf_mfcc_opts *opts,
+                                            knf_mfcc_computer *out) {
   memset(out, 0, sizeof(*out));
   out->opts = *opts;
   int32_t n_fft = knf_padded_window_size(&opts->frame_opts);
@@ -106,8 +106,8 @@ bool knf_mfcc_need_raw_log_energy(const knf_mfcc_computer *c) {
 }
 
 void knf_mfcc_compute(knf_mfcc_computer *c, float signal_raw_log_energy,
-                      float vtln_warp, float *signal_frame, float *feature) {
-  (void)vtln_warp;
+                      [[maybe_unused]] float vtln_warp, float *signal_frame,
+                      float *feature) {
   const knf_mfcc_opts *opts = &c->opts;
   int32_t padded = knf_padded_window_size(&opts->frame_opts);
   if (opts->use_energy && !opts->raw_energy) {

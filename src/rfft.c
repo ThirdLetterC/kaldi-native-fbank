@@ -13,7 +13,7 @@ struct knf_rfft_state {
   fftwf_plan plan;
 };
 
-knf_rfft *knf_rfft_create(int32_t n, bool inverse) {
+[[nodiscard]] knf_rfft *knf_rfft_create(int32_t n, bool inverse) {
   if ((n & 1) != 0 || n <= 0) {
     return nullptr;
   }

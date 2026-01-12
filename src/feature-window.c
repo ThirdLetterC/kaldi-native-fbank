@@ -50,8 +50,8 @@ static bool knf_window_match(const char *type, const char *target) {
   return strncmp(type, target, 15) == 0;
 }
 
-bool knf_make_window(const char *window_type, int32_t window_size,
-                     float blackman_coeff, knf_window *out) {
+[[nodiscard]] bool knf_make_window(const char *window_type, int32_t window_size,
+                                   float blackman_coeff, knf_window *out) {
   if (window_size <= 0)
     return false;
   out->data = (float *)calloc((size_t)window_size, sizeof(float));
@@ -91,7 +91,8 @@ bool knf_make_window(const char *window_type, int32_t window_size,
   return true;
 }
 
-bool knf_make_window_from_opts(const knf_frame_opts *opts, knf_window *out) {
+[[nodiscard]] bool knf_make_window_from_opts(const knf_frame_opts *opts,
+                                             knf_window *out) {
   return knf_make_window(opts->window_type, knf_window_size(opts),
                          opts->blackman_coeff, out);
 }
@@ -149,11 +150,12 @@ static float knf_rand_uniform() {
   return (float)rand() / (float)RAND_MAX - 0.5f;
 }
 
-bool knf_extract_window(int64_t sample_offset, const float *wave,
-                        int32_t wave_size, int32_t frame_index,
-                        const knf_frame_opts *opts,
-                        const knf_window *window_function, float *window,
-                        float *log_energy_pre_window) {
+[[nodiscard]] bool knf_extract_window(int64_t sample_offset, const float *wave,
+                                      int32_t wave_size, int32_t frame_index,
+                                      const knf_frame_opts *opts,
+                                      const knf_window *window_function,
+                                      float *window,
+                                      float *log_energy_pre_window) {
   KNF_CHECK(sample_offset >= 0);
   KNF_CHECK(wave != nullptr);
   int32_t frame_length = knf_window_size(opts);
