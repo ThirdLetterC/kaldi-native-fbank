@@ -1,0 +1,13 @@
+build
+dist
+*.egg-info
+**/__pycache__
+build-arm-linux-gnueabihf
+.zig-cache
+zig-out
+*.o
+*.obj
+*.lo
+
+# vim
+*.sw?
