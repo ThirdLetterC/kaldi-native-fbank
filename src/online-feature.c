@@ -3,9 +3,9 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "online-feature.h"
 #include "feature-window.h"
 #include "log.h"
+#include "online-feature.h"
 
 static bool knf_online_init_common(knf_online_feature *f, void *computer,
                                    knf_online_kind kind, knf_compute_fn compute,
@@ -61,8 +61,7 @@ static void knf_online_compute_new(knf_online_feature *f) {
       f->features = new_features;
     }
     int32_t dim = f->dim(f->computer);
-    f->features[f->num_features] =
-        (float *)calloc((size_t)dim, sizeof(float));
+    f->features[f->num_features] = (float *)calloc((size_t)dim, sizeof(float));
     if (f->features[f->num_features] == nullptr) {
       free(window);
       knf_fail("alloc", __FILE__, __func__, __LINE__, "feature alloc failed");
@@ -141,16 +140,17 @@ static void knf_online_compute_whisper(void *c, float e, float v, float *w,
 
 bool knf_online_fbank_create(const knf_fbank_opts *opts,
                              knf_online_feature *out) {
-  auto c = (knf_fbank_computer *)calloc(1, sizeof(*c));
+  knf_fbank_computer *c =
+      (knf_fbank_computer *)calloc(1, sizeof(knf_fbank_computer));
   if (c == nullptr)
     return false;
   if (!knf_fbank_computer_create(opts, c)) {
     free(c);
     return false;
   }
-  if (!knf_online_init_common(out, c, KNF_ONLINE_FBANK, knf_online_compute_fbank,
-                              knf_online_frame_fbank, knf_online_dim_fbank,
-                              knf_online_need_fbank)) {
+  if (!knf_online_init_common(out, c, KNF_ONLINE_FBANK,
+                              knf_online_compute_fbank, knf_online_frame_fbank,
+                              knf_online_dim_fbank, knf_online_need_fbank)) {
     knf_fbank_computer_destroy(c);
     free(c);
     return false;
@@ -160,7 +160,8 @@ bool knf_online_fbank_create(const knf_fbank_opts *opts,
 
 bool knf_online_mfcc_create(const knf_mfcc_opts *opts,
                             knf_online_feature *out) {
-  auto c = (knf_mfcc_computer *)calloc(1, sizeof(*c));
+  knf_mfcc_computer *c =
+      (knf_mfcc_computer *)calloc(1, sizeof(knf_mfcc_computer));
   if (c == nullptr)
     return false;
   if (!knf_mfcc_computer_create(opts, c)) {
@@ -179,7 +180,8 @@ bool knf_online_mfcc_create(const knf_mfcc_opts *opts,
 
 bool knf_online_raw_create(const knf_raw_audio_opts *opts,
                            knf_online_feature *out) {
-  auto c = (knf_raw_audio_computer *)calloc(1, sizeof(*c));
+  knf_raw_audio_computer *c =
+      (knf_raw_audio_computer *)calloc(1, sizeof(knf_raw_audio_computer));
   if (c == nullptr)
     return false;
   if (!knf_raw_audio_computer_create(opts, c)) {
@@ -198,7 +200,8 @@ bool knf_online_raw_create(const knf_raw_audio_opts *opts,
 
 bool knf_online_whisper_create(const knf_whisper_opts *opts,
                                knf_online_feature *out) {
-  auto c = (knf_whisper_computer *)calloc(1, sizeof(*c));
+  knf_whisper_computer *c =
+      (knf_whisper_computer *)calloc(1, sizeof(knf_whisper_computer));
   if (c == nullptr)
     return false;
   if (!knf_whisper_computer_create(opts, c)) {
@@ -207,8 +210,8 @@ bool knf_online_whisper_create(const knf_whisper_opts *opts,
   }
   if (!knf_online_init_common(out, c, KNF_ONLINE_WHISPER,
                               knf_online_compute_whisper,
-                              knf_online_frame_whisper,
-                              knf_online_dim_whisper, knf_online_need_whisper)) {
+                              knf_online_frame_whisper, knf_online_dim_whisper,
+                              knf_online_need_whisper)) {
     knf_whisper_computer_destroy(c);
     free(c);
     return false;
@@ -245,6 +248,10 @@ void knf_online_feature_destroy(knf_online_feature *f) {
 
 void knf_online_accept_waveform(knf_online_feature *f, float sampling_rate,
                                 const float *waveform, int32_t n) {
+  if (n < 0) {
+    knf_fail("length", __FILE__, __func__, __LINE__,
+             "negative sample count %" PRId32, n);
+  }
   if (n == 0)
     return;
   if (f->input_finished) {
@@ -257,11 +264,10 @@ void knf_online_accept_waveform(knf_online_feature *f, float sampling_rate,
   if (f->waveform_size + n > f->waveform_cap) {
     while (f->waveform_size + n > f->waveform_cap)
       f->waveform_cap *= 2;
-    auto *new_waveform = (float *)realloc(
-        f->waveform, sizeof(float) * (size_t)f->waveform_cap);
+    auto *new_waveform =
+        (float *)realloc(f->waveform, sizeof(float) * (size_t)f->waveform_cap);
     if (new_waveform == nullptr) {
-      knf_fail("alloc", __FILE__, __func__, __LINE__,
-               "waveform growth failed");
+      knf_fail("alloc", __FILE__, __func__, __LINE__, "waveform growth failed");
     }
     f->waveform = new_waveform;
   }

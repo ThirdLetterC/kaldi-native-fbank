@@ -4,8 +4,8 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "rfft.h"
 #include "log.h"
+#include "rfft.h"
 
 struct knf_rfft_state {
   fftwf_complex *freq;

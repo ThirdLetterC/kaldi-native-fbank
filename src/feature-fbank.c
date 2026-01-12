@@ -54,8 +54,7 @@ const knf_frame_opts *knf_fbank_frame_opts(const knf_fbank_computer *c) {
 }
 
 int32_t knf_fbank_dim(const knf_fbank_computer *c) {
-  return c->opts.mel_opts.num_bins +
-         (c->opts.use_energy && !c->opts.htk_compat);
+  return c->opts.mel_opts.num_bins + (c->opts.use_energy ? 1 : 0);
 }
 
 bool knf_fbank_need_raw_log_energy(const knf_fbank_computer *c) {

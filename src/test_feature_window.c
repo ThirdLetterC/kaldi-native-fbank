@@ -25,9 +25,8 @@ int main() {
     wave[i] = (float)i;
   float window_buf[512];
   float log_energy = 0.0f;
-  bool ok =
-      knf_extract_window(0, wave, 512, 0, &opts, nullptr, window_buf,
-                         &log_energy);
+  bool ok = knf_extract_window(0, wave, 512, 0, &opts, nullptr, window_buf,
+                               &log_energy);
   assert(ok);
   (void)log_energy;
 

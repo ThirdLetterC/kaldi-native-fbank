@@ -17,8 +17,7 @@ static void knf_compute_dct(int32_t rows, int32_t cols, float *out) {
   float norm = sqrtf(2.0f / cols);
   for (int32_t k = 1; k < rows; ++k) {
     for (int32_t n = 0; n < cols; ++n) {
-      out[k * cols + n] =
-          norm * cosf((float)KNF_PI / cols * (n + 0.5f) * k);
+      out[k * cols + n] = norm * cosf((float)KNF_PI / cols * (n + 0.5f) * k);
     }
   }
 }
@@ -68,8 +67,7 @@ bool knf_mfcc_computer_create(const knf_mfcc_opts *opts,
   }
   knf_compute_dct(opts->num_ceps, opts->mel_opts.num_bins, out->dct_matrix);
   if (opts->cepstral_lifter != 0.0f) {
-    out->lifter_coeffs =
-        (float *)calloc((size_t)opts->num_ceps, sizeof(float));
+    out->lifter_coeffs = (float *)calloc((size_t)opts->num_ceps, sizeof(float));
     if (out->lifter_coeffs == nullptr) {
       knf_mfcc_computer_destroy(out);
       return false;
@@ -151,7 +149,7 @@ void knf_mfcc_compute(knf_mfcc_computer *c, float signal_raw_log_energy,
       feature[i] = feature[i + 1];
     }
     if (!opts->use_energy) {
-      energy *= M_SQRT2;
+      energy *= (float)KNF_SQRT2;
     }
     feature[opts->num_ceps - 1] = energy;
   }

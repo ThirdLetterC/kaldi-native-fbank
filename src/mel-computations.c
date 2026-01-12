@@ -4,8 +4,8 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "mel-computations.h"
 #include "log.h"
+#include "mel-computations.h"
 
 static float knf_mel_scale(float freq) {
   return 1127.0f * logf(1.0f + freq / 700.0f);

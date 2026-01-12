@@ -4,9 +4,9 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "stft.h"
 #include "log.h"
 #include "rfft.h"
+#include "stft.h"
 
 void knf_stft_config_default(knf_stft_config *cfg) {
   cfg->n_fft = 400;      // 25ms at 16k
@@ -72,8 +72,8 @@ bool knf_stft_compute(const knf_stft_config *cfg, const float *data, int32_t n,
 
   int32_t pad = cfg->center ? cfg->n_fft / 2 : 0;
   int32_t padded_len = n + 2 * pad;
-  float *padded = (float *)calloc(
-      (size_t)(padded_len > 0 ? padded_len : 1), sizeof(float));
+  float *padded =
+      (float *)calloc((size_t)(padded_len > 0 ? padded_len : 1), sizeof(float));
   if (padded == nullptr) {
     if (owns_window)
       knf_free_window(&window);
