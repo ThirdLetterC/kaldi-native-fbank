@@ -20,7 +20,6 @@ int main() {
   knf_rfft_compute(ifft, signal);
   knf_rfft_destroy(ifft);
 
-  // FFTW inverse is unnormalized; expect n * original.
   for (int i = 0; i < 8; ++i) {
     float expected = original[i] * 8.0f;
     assert(fabsf(signal[i] - expected) < 1e-3f);

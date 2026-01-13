@@ -1,16 +1,15 @@
-// Real FFT wrapper implemented in C on top of FFTW.
+// Real FFT wrapper implemented in C23 on top of pocketfft.
 
-#include <fftw3.h>
 #include <stdlib.h>
 #include <string.h>
 
 #include "log.h"
+#include "pocketfft.h"
 #include "rfft.h"
 
 struct knf_rfft_state {
-  fftwf_complex *freq;
-  float *time;
-  fftwf_plan plan;
+  rfft_plan plan;
+  double *buffer;
 };
 
 [[nodiscard]] knf_rfft *knf_rfft_create(int32_t n, bool inverse) {
@@ -33,24 +32,10 @@ struct knf_rfft_state {
   fft->inverse = inverse;
   fft->scale = inverse ? 1.0f : 1.0f;
   fft->plan = state;
-  state->freq =
-      (fftwf_complex *)fftwf_malloc(sizeof(fftwf_complex) * (n / 2 + 1));
-  state->time = (float *)fftwf_malloc(sizeof(float) * n);
+  state->plan = make_rfft_plan((size_t)n);
+  state->buffer = (double *)calloc((size_t)n, sizeof(double));
 
-  if (state->freq == nullptr || state->time == nullptr) {
-    knf_rfft_destroy(fft);
-    return nullptr;
-  }
-
-  if (!inverse) {
-    state->plan =
-        fftwf_plan_dft_r2c_1d(n, state->time, state->freq, FFTW_MEASURE);
-  } else {
-    state->plan =
-        fftwf_plan_dft_c2r_1d(n, state->freq, state->time, FFTW_MEASURE);
-  }
-
-  if (state->plan == nullptr) {
+  if (state->plan == nullptr || state->buffer == nullptr) {
     knf_rfft_destroy(fft);
     return nullptr;
   }
@@ -64,11 +49,8 @@ void knf_rfft_destroy(knf_rfft *fft) {
   struct knf_rfft_state *state = (struct knf_rfft_state *)fft->plan;
   if (state) {
     if (state->plan)
-      fftwf_destroy_plan(state->plan);
-    if (state->freq)
-      fftwf_free(state->freq);
-    if (state->time)
-      fftwf_free(state->time);
+      destroy_rfft_plan(state->plan);
+    free(state->buffer);
     free(state);
   }
   free(fft);
@@ -80,27 +62,36 @@ void knf_rfft_compute(knf_rfft *fft, float *in_out) {
 
   struct knf_rfft_state *state = (struct knf_rfft_state *)fft->plan;
   if (!fft->inverse) {
-    memcpy(state->time, in_out, sizeof(float) * fft->n);
-    fftwf_execute(state->plan);
+    for (int32_t i = 0; i < fft->n; ++i)
+      state->buffer[i] = (double)in_out[i];
+    const int status = rfft_forward(state->plan, state->buffer, 1.0);
+    if (status != 0) {
+      KNF_LOG_ERROR("rfft_forward failed with status %d", status);
+      return;
+    }
 
-    in_out[0] = state->freq[0][0];
-    in_out[1] = state->freq[fft->n / 2][0];
+    in_out[0] = (float)state->buffer[0];
+    in_out[1] = (float)state->buffer[1];
     for (int32_t i = 1; i < fft->n / 2; ++i) {
-      in_out[2 * i] = state->freq[i][0];
-      in_out[2 * i + 1] = state->freq[i][1];
+      in_out[2 * i] = (float)state->buffer[2 * i];
+      in_out[2 * i + 1] = (float)state->buffer[2 * i + 1];
     }
   } else {
-    state->freq[0][0] = in_out[0];
-    state->freq[0][1] = 0.0f;
-    state->freq[fft->n / 2][0] = in_out[1];
-    state->freq[fft->n / 2][1] = 0.0f;
+    state->buffer[0] = (double)in_out[0];
+    state->buffer[1] = (double)in_out[1];
 
     for (int32_t i = 1; i < fft->n / 2; ++i) {
-      state->freq[i][0] = in_out[2 * i];
-      state->freq[i][1] = in_out[2 * i + 1];
+      state->buffer[2 * i] = (double)in_out[2 * i];
+      state->buffer[2 * i + 1] = (double)in_out[2 * i + 1];
     }
 
-    fftwf_execute(state->plan);
-    memcpy(in_out, state->time, sizeof(float) * fft->n);
+    const int status = rfft_backward(state->plan, state->buffer, 1.0);
+    if (status != 0) {
+      KNF_LOG_ERROR("rfft_backward failed with status %d", status);
+      return;
+    }
+
+    for (int32_t i = 0; i < fft->n; ++i)
+      in_out[i] = (float)state->buffer[i];
   }
 }

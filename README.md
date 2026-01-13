@@ -4,7 +4,7 @@ Minimal C23 implementation of Kaldi-style filterbank, MFCC, STFT/ISTFT, and rela
 
 ## Prerequisites
 - `zig 0.15.x`
-- `fftw3f` development headers and shared library (`libfftw3f`); on Debian/Ubuntu: `sudo apt install libfftw3-dev`
+- Uses the bundled `pocketfft` implementation; no external FFT library needed.
 
 ## Build
 - Build the static library and install artifacts to `zig-out`:  

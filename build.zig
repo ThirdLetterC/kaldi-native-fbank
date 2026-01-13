@@ -6,6 +6,7 @@ const core_sources = [_][]const u8{
     "src/log.c",
     "src/kaldi-math.c",
     "src/rfft.c",
+    "src/pocketfft.c",
     "src/feature-window.c",
     "src/feature-functions.c",
     "src/mel-computations.c",
@@ -80,7 +81,6 @@ pub fn build(b: *std.Build) void {
 
 fn linkCoreDeps(step: *std.Build.Step.Compile, target: std.Build.ResolvedTarget) void {
     step.linkLibC();
-    step.linkSystemLibrary("fftw3f");
 
     const os_tag = target.result.os.tag;
     if (os_tag != .windows and os_tag != .uefi) {

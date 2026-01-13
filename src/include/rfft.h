@@ -1,5 +1,5 @@
 // include/rfft.h
-// Simple real FFT wrapper on top of FFTW for C23 build.
+// Simple real FFT wrapper backed by pocketfft for C23 build.
 
 #ifndef KALDI_NATIVE_FBANK_CSRC_RFFT_H_
 #define KALDI_NATIVE_FBANK_CSRC_RFFT_H_
