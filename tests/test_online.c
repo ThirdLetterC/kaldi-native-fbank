@@ -39,6 +39,7 @@ int main() {
   }
 
   knf_online_feature_destroy(&feat);
+  knf_online_feature_destroy(&feat);
   free(wave);
   printf("test_online passed\n");
   return 0;

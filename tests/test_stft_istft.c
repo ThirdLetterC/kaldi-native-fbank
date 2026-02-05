@@ -44,6 +44,32 @@ int main() {
   printf("max reconstruction error: %f\n", max_err);
   assert(max_err < 1e-2f);
 
+  float dummy = 0.0f;
+  knf_stft_result empty = {
+      .real = &dummy, .imag = &dummy, .num_frames = 7, .n_fft = 9};
+  assert(!knf_stft_compute(&stft_cfg, &dummy, 0, &empty));
+  assert(empty.real == nullptr);
+  assert(empty.imag == nullptr);
+  assert(empty.num_frames == 0);
+  assert(empty.n_fft == 0);
+
+  knf_istft_config bad_istft = istft_cfg;
+  bad_istft.n_fft = stft_cfg.n_fft * 2;
+  float *bad_recon = &dummy;
+  int32_t bad_recon_n = 123;
+  assert(!knf_istft_compute(&bad_istft, &res, &bad_recon, &bad_recon_n));
+  assert(bad_recon == nullptr);
+  assert(bad_recon_n == 0);
+
+  knf_stft_result invalid_spec = {
+      .real = nullptr, .imag = nullptr, .num_frames = 1, .n_fft = stft_cfg.n_fft};
+  float *invalid_recon = &dummy;
+  int32_t invalid_recon_n = 456;
+  assert(!knf_istft_compute(&istft_cfg, &invalid_spec, &invalid_recon,
+                            &invalid_recon_n));
+  assert(invalid_recon == nullptr);
+  assert(invalid_recon_n == 0);
+
   free(recon);
   knf_stft_result_free(&res);
   free(wave);

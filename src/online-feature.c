@@ -1,6 +1,7 @@
 // Simple online feature extraction orchestrator.
 
 #include <stdlib.h>
+#include <limits.h>
 #include <string.h>
 
 #include "kaldi-native-fbank/feature-window.h"
@@ -12,13 +13,6 @@ static bool knf_online_init_common(knf_online_feature *f, void *computer,
                                    knf_frame_fn frame_fn, knf_dim_fn dim_fn,
                                    knf_need_raw_energy_fn need_fn) {
   memset(f, 0, sizeof(*f));
-  f->kind = kind;
-  f->computer = computer;
-  f->compute = compute;
-  f->frame_opts = frame_fn;
-  f->dim = dim_fn;
-  f->need_raw_energy = need_fn;
-
   if (!knf_make_window_from_opts(frame_fn(computer), &f->window_fn)) {
     return false;
   }
@@ -28,6 +22,12 @@ static bool knf_online_init_common(knf_online_feature *f, void *computer,
     knf_free_window(&f->window_fn);
     return false;
   }
+  f->kind = kind;
+  f->computer = computer;
+  f->compute = compute;
+  f->frame_opts = frame_fn;
+  f->dim = dim_fn;
+  f->need_raw_energy = need_fn;
   return true;
 }
 
@@ -248,16 +248,22 @@ void knf_online_feature_destroy(knf_online_feature *f) {
   for (int32_t i = 0; i < f->num_features; ++i)
     free(f->features[i]);
   free(f->features);
+  memset(f, 0, sizeof(*f));
 }
 
 void knf_online_accept_waveform(knf_online_feature *f, float sampling_rate,
                                 const float *waveform, int32_t n) {
+  KNF_CHECK(f != nullptr);
   if (n < 0) {
     knf_fail("length", __FILE__, __func__, __LINE__,
              "negative sample count %" PRId32, n);
   }
   if (n == 0)
     return;
+  if (waveform == nullptr) {
+    knf_fail("waveform", __FILE__, __func__, __LINE__,
+             "waveform pointer is null for non-zero sample count");
+  }
   if (f->input_finished) {
     knf_fail("finished", __FILE__, __func__, __LINE__,
              "AcceptWaveform after finish");
@@ -265,9 +271,19 @@ void knf_online_accept_waveform(knf_online_feature *f, float sampling_rate,
   if (sampling_rate != f->frame_opts(f->computer)->samp_freq) {
     knf_fail("rate", __FILE__, __func__, __LINE__, "sampling rate mismatch");
   }
-  if (f->waveform_size + n > f->waveform_cap) {
-    while (f->waveform_size + n > f->waveform_cap)
-      f->waveform_cap *= 2;
+  int64_t needed = (int64_t)f->waveform_size + n;
+  if (needed > INT32_MAX) {
+    knf_fail("alloc", __FILE__, __func__, __LINE__,
+             "waveform too large (%" PRId64 " samples)", needed);
+  }
+  if (needed > f->waveform_cap) {
+    while (needed > f->waveform_cap) {
+      if (f->waveform_cap > INT32_MAX / 2) {
+        f->waveform_cap = INT32_MAX;
+      } else {
+        f->waveform_cap *= 2;
+      }
+    }
     auto *new_waveform =
         (float *)realloc(f->waveform, sizeof(float) * (size_t)f->waveform_cap);
     if (new_waveform == nullptr) {

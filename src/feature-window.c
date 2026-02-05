@@ -52,16 +52,16 @@ static bool knf_window_match(const char *type, const char *target) {
 
 [[nodiscard]] bool knf_make_window(const char *window_type, int32_t window_size,
                                    float blackman_coeff, knf_window *out) {
-  if (window_size <= 0)
+  if (window_type == nullptr || out == nullptr || window_size <= 0)
     return false;
   out->data = (float *)calloc((size_t)window_size, sizeof(float));
   if (out->data == nullptr)
     return false;
   out->size = window_size;
 
-  auto a = 2.0 * KNF_PI / (window_size - 1);
+  auto a = 2.0 * KNF_PI / (window_size > 1 ? window_size - 1 : 1);
   if (knf_window_match(window_type, "hann")) {
-    a = 2.0 * KNF_PI / window_size;
+    a = 2.0 * KNF_PI / (window_size > 0 ? window_size : 1);
   }
 
   for (int32_t i = 0; i < window_size; ++i) {
@@ -126,6 +126,9 @@ int32_t knf_num_frames(int64_t num_samples, const knf_frame_opts *opts,
                        bool flush) {
   int64_t frame_shift = knf_window_shift(opts);
   int64_t frame_length = knf_window_size(opts);
+  if (frame_shift <= 0 || frame_length <= 0 || num_samples <= 0) {
+    return 0;
+  }
   if (opts->snip_edges) {
     if (num_samples < frame_length)
       return 0;
@@ -136,6 +139,8 @@ int32_t knf_num_frames(int64_t num_samples, const knf_frame_opts *opts,
       (int32_t)((num_samples + (frame_shift / 2)) / frame_shift);
   if (flush)
     return num_frames;
+  if (num_frames <= 0)
+    return 0;
 
   int64_t end_sample =
       knf_first_sample_of_frame(num_frames - 1, opts) + frame_length;
@@ -158,6 +163,8 @@ static float knf_rand_uniform() {
                                       float *log_energy_pre_window) {
   KNF_CHECK(sample_offset >= 0);
   KNF_CHECK(wave != nullptr);
+  if (wave_size <= 0)
+    return false;
   int32_t frame_length = knf_window_size(opts);
   int32_t frame_length_padded = knf_padded_window_size(opts);
   int64_t num_samples = sample_offset + wave_size;

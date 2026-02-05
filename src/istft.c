@@ -1,6 +1,7 @@
 // Inverse STFT implementation in C.
 
 #include <math.h>
+#include <limits.h>
 #include <stdlib.h>
 #include <string.h>
 
@@ -26,15 +27,35 @@ void knf_istft_config_default(knf_istft_config *cfg) {
                                      int32_t *num_samples) {
   KNF_CHECK(cfg != nullptr);
   KNF_CHECK(stft != nullptr);
+  if (out_samples == nullptr || num_samples == nullptr) {
+    return false;
+  }
+  *out_samples = nullptr;
+  *num_samples = 0;
+
+  if (stft->real == nullptr || stft->imag == nullptr) {
+    return false;
+  }
+  if (cfg->n_fft <= 0 || cfg->hop_length <= 0 || cfg->win_length <= 0) {
+    return false;
+  }
+  if (stft->n_fft != cfg->n_fft) {
+    return false;
+  }
+
   int32_t n_fft = cfg->n_fft;
   int32_t hop = cfg->hop_length;
   int32_t frames = stft->num_frames;
   int32_t bins = n_fft / 2 + 1;
 
-  if (frames <= 0 || n_fft <= 0)
+  if (frames <= 0)
     return false;
 
-  int32_t total = n_fft + (frames - 1) * hop;
+  int64_t total64 = (int64_t)n_fft + (int64_t)(frames - 1) * hop;
+  if (total64 <= 0 || total64 > INT32_MAX) {
+    return false;
+  }
+  int32_t total = (int32_t)total64;
   float *samples = (float *)calloc((size_t)total, sizeof(float));
   float *denom = (float *)calloc((size_t)total, sizeof(float));
   if (samples == nullptr || denom == nullptr) {

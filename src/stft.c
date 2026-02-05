@@ -22,6 +22,10 @@ void knf_stft_config_default(knf_stft_config *cfg) {
 
 static void knf_pad_reflect(const float *data, int32_t n, int32_t pad,
                             float *out) {
+  if (n <= 0) {
+    memset(out, 0, sizeof(float) * (size_t)(2 * pad));
+    return;
+  }
   // left pad
   for (int32_t i = 0; i < pad; ++i) {
     int32_t src = pad - i;
@@ -40,6 +44,10 @@ static void knf_pad_reflect(const float *data, int32_t n, int32_t pad,
 
 static void knf_pad_replicate(const float *data, int32_t n, int32_t pad,
                               float *out) {
+  if (n <= 0) {
+    memset(out, 0, sizeof(float) * (size_t)(2 * pad));
+    return;
+  }
   for (int32_t i = 0; i < pad; ++i)
     out[i] = data[0];
   memcpy(out + pad, data, sizeof(float) * n);
@@ -58,7 +66,10 @@ static void knf_pad_constant(const float *data, int32_t n, int32_t pad,
                                     knf_stft_result *out) {
   KNF_CHECK(cfg != nullptr);
   KNF_CHECK(data != nullptr);
-  if (cfg->n_fft <= 0 || cfg->hop_length <= 0 || cfg->win_length <= 0) {
+  KNF_CHECK(out != nullptr);
+  memset(out, 0, sizeof(*out));
+
+  if (n <= 0 || cfg->n_fft <= 0 || cfg->hop_length <= 0 || cfg->win_length <= 0) {
     return false;
   }
 
@@ -120,6 +131,10 @@ static void knf_pad_constant(const float *data, int32_t n, int32_t pad,
   if (out->real == nullptr || out->imag == nullptr) {
     free(out->real);
     free(out->imag);
+    out->real = nullptr;
+    out->imag = nullptr;
+    out->num_frames = 0;
+    out->n_fft = 0;
     free(padded);
     knf_rfft_destroy(fft);
     if (owns_window)
@@ -131,6 +146,10 @@ static void knf_pad_constant(const float *data, int32_t n, int32_t pad,
   if (frame == nullptr) {
     free(out->real);
     free(out->imag);
+    out->real = nullptr;
+    out->imag = nullptr;
+    out->num_frames = 0;
+    out->n_fft = 0;
     free(padded);
     knf_rfft_destroy(fft);
     if (owns_window)
