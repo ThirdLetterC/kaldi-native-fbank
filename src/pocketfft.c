@@ -14,7 +14,7 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "pocketfft.h"
+#include "pocketfft/pocketfft.h"
 
 #define RALLOC(type, num) ((type *)calloc((num), sizeof(type)))
 #define DEALLOC(ptr)                                                           \

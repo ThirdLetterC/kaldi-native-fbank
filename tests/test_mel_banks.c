@@ -3,8 +3,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-#include "feature-window.h"
-#include "mel-computations.h"
+#include "kaldi-native-fbank/feature-window.h"
+#include "kaldi-native-fbank/mel-computations.h"
 
 int main() {
   knf_frame_opts fopts;

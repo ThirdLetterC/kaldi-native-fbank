@@ -5,8 +5,8 @@
 
 constexpr float KNF_PI = 3.14159265358979323846f;
 
-#include "istft.h"
-#include "stft.h"
+#include "kaldi-native-fbank/istft.h"
+#include "kaldi-native-fbank/stft.h"
 
 int main() {
   const int n = 640;

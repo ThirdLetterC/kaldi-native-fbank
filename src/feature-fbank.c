@@ -1,13 +1,11 @@
 // Fbank computation in C23.
 
 #include <math.h>
-#include <stdlib.h>
 #include <string.h>
 
-#include "feature-fbank.h"
-#include "feature-functions.h"
-#include "kaldi-math.h"
-#include "log.h"
+#include "kaldi-native-fbank/feature-fbank.h"
+#include "kaldi-native-fbank/feature-functions.h"
+#include "kaldi-native-fbank/kaldi-math.h"
 
 void knf_fbank_opts_default(knf_fbank_opts *opts) {
   knf_frame_opts_default(&opts->frame_opts);

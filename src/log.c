@@ -4,7 +4,7 @@
 #include <stdarg.h>
 #include <time.h>
 
-#include "log.h"
+#include "kaldi-native-fbank/log.h"
 
 static knf_log_level g_log_level = KNF_LOG_INFO;
 

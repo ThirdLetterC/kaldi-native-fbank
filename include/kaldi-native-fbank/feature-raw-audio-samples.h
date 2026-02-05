@@ -4,7 +4,7 @@
 
 #include <stdint.h>
 
-#include "feature-window.h"
+#include "kaldi-native-fbank/feature-window.h"
 
 typedef struct {
   knf_frame_opts frame_opts;

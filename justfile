@@ -11,4 +11,7 @@ run *args:
 
 fmt:
     zig fmt build.zig
-    clang-format -i src/*.c src/include/*.h
+    clang-format -i src/*.c include/kaldi-native-fbank/*.h
+
+clean:
+    rm -rf zig-cache zig-out .zig-cache

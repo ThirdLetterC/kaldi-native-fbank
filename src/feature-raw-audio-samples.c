@@ -2,7 +2,7 @@
 
 #include <string.h>
 
-#include "feature-raw-audio-samples.h"
+#include "kaldi-native-fbank/feature-raw-audio-samples.h"
 
 void knf_raw_audio_opts_default(knf_raw_audio_opts *opts) {
   knf_frame_opts_default(&opts->frame_opts);

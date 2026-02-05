@@ -20,15 +20,15 @@ const core_sources = [_][]const u8{
 };
 
 const test_sources = [_]struct { name: []const u8, path: []const u8 }{
-    .{ .name = "test_rfft", .path = "src/test_rfft.c" },
-    .{ .name = "test_stft_istft", .path = "src/test_stft_istft.c" },
-    .{ .name = "test_feature_window", .path = "src/test_feature_window.c" },
-    .{ .name = "test_mel_banks", .path = "src/test_mel_banks.c" },
-    .{ .name = "test_fbank", .path = "src/test_fbank.c" },
-    .{ .name = "test_mfcc", .path = "src/test_mfcc.c" },
-    .{ .name = "test_online", .path = "src/test_online.c" },
-    .{ .name = "test_feature_demo", .path = "src/test_feature_demo.c" },
-    .{ .name = "test_whisper", .path = "src/test_whisper.c" },
+    .{ .name = "test_rfft", .path = "tests/test_rfft.c" },
+    .{ .name = "test_stft_istft", .path = "tests/test_stft_istft.c" },
+    .{ .name = "test_feature_window", .path = "tests/test_feature_window.c" },
+    .{ .name = "test_mel_banks", .path = "tests/test_mel_banks.c" },
+    .{ .name = "test_fbank", .path = "tests/test_fbank.c" },
+    .{ .name = "test_mfcc", .path = "tests/test_mfcc.c" },
+    .{ .name = "test_online", .path = "tests/test_online.c" },
+    .{ .name = "test_feature_demo", .path = "tests/test_feature_demo.c" },
+    .{ .name = "test_whisper", .path = "tests/test_whisper.c" },
 };
 
 pub fn build(b: *std.Build) void {
@@ -41,7 +41,7 @@ pub fn build(b: *std.Build) void {
         .link_libc = true,
     });
     lib_module.addIncludePath(.{ .src_path = .{ .owner = b, .sub_path = "src" } });
-    lib_module.addIncludePath(.{ .src_path = .{ .owner = b, .sub_path = "src/include" } });
+    lib_module.addIncludePath(.{ .src_path = .{ .owner = b, .sub_path = "include" } });
     lib_module.addCSourceFiles(.{ .files = &core_sources, .flags = &c_flags });
 
     const lib = b.addLibrary(.{
@@ -59,7 +59,7 @@ pub fn build(b: *std.Build) void {
             .link_libc = true,
         });
         test_module.addIncludePath(.{ .src_path = .{ .owner = b, .sub_path = "src" } });
-        test_module.addIncludePath(.{ .src_path = .{ .owner = b, .sub_path = "src/include" } });
+        test_module.addIncludePath(.{ .src_path = .{ .owner = b, .sub_path = "include" } });
         test_module.addCSourceFiles(.{
             .files = &[_][]const u8{t.path},
             .flags = &c_flags,

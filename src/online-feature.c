@@ -3,9 +3,9 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "feature-window.h"
-#include "log.h"
-#include "online-feature.h"
+#include "kaldi-native-fbank/feature-window.h"
+#include "kaldi-native-fbank/log.h"
+#include "kaldi-native-fbank/online-feature.h"
 
 static bool knf_online_init_common(knf_online_feature *f, void *computer,
                                    knf_online_kind kind, knf_compute_fn compute,
@@ -46,10 +46,14 @@ static void knf_online_compute_new(knf_online_feature *f) {
   }
   for (int32_t frame = prev_frames; frame < new_frames; ++frame) {
     float raw_log_energy = 0.0f;
-    knf_extract_window(f->waveform_offset, f->waveform, f->waveform_size, frame,
-                       opts, &f->window_fn, window,
-                       f->need_raw_energy(f->computer) ? &raw_log_energy
-                                                       : nullptr);
+    if (!knf_extract_window(f->waveform_offset, f->waveform, f->waveform_size,
+                            frame, opts, &f->window_fn, window,
+                            f->need_raw_energy(f->computer) ? &raw_log_energy
+                                                            : nullptr)) {
+      free(window);
+      knf_fail("extract", __FILE__, __func__, __LINE__,
+               "window extraction failed");
+    }
     if (f->num_features == f->features_cap) {
       f->features_cap = f->features_cap ? f->features_cap * 2 : 16;
       auto new_features = (float **)realloc(

@@ -3,9 +3,9 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "log.h"
-#include "pocketfft.h"
-#include "rfft.h"
+#include "kaldi-native-fbank/log.h"
+#include "pocketfft/pocketfft.h"
+#include "kaldi-native-fbank/rfft.h"
 
 struct knf_rfft_state {
   rfft_plan plan;

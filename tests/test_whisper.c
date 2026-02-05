@@ -3,8 +3,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-#include "feature-window.h"
-#include "whisper-feature.h"
+#include "kaldi-native-fbank/feature-window.h"
+#include "kaldi-native-fbank/whisper-feature.h"
 
 constexpr float KNF_PI = 3.14159265358979323846f;
 int main() {

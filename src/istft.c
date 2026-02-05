@@ -4,10 +4,10 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "feature-window.h"
-#include "istft.h"
-#include "log.h"
-#include "rfft.h"
+#include "kaldi-native-fbank/feature-window.h"
+#include "kaldi-native-fbank/istft.h"
+#include "kaldi-native-fbank/log.h"
+#include "kaldi-native-fbank/rfft.h"
 
 void knf_istft_config_default(knf_istft_config *cfg) {
   cfg->n_fft = 400;

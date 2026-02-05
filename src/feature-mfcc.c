@@ -4,10 +4,9 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "feature-functions.h"
-#include "feature-mfcc.h"
-#include "kaldi-math.h"
-#include "log.h"
+#include "kaldi-native-fbank/feature-functions.h"
+#include "kaldi-native-fbank/feature-mfcc.h"
+#include "kaldi-native-fbank/kaldi-math.h"
 
 static void knf_compute_dct(int32_t rows, int32_t cols, float *out) {
   float norm0 = sqrtf(1.0f / cols);

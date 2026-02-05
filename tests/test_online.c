@@ -3,7 +3,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-#include "online-feature.h"
+#include "kaldi-native-fbank/online-feature.h"
 
 constexpr float KNF_PI = 3.14159265358979323846f;
 static void fill_wave(float *wave, int n, float freq, float samp_freq) {

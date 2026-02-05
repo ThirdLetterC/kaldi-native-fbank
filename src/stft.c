@@ -4,9 +4,9 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "log.h"
-#include "rfft.h"
-#include "stft.h"
+#include "kaldi-native-fbank/log.h"
+#include "kaldi-native-fbank/rfft.h"
+#include "kaldi-native-fbank/stft.h"
 
 void knf_stft_config_default(knf_stft_config *cfg) {
   cfg->n_fft = 400;      // 25ms at 16k

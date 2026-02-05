@@ -1,5 +1,5 @@
 // Utility helpers for FFT output.
-#include "feature-functions.h"
+#include "kaldi-native-fbank/feature-functions.h"
 
 void knf_compute_power_spectrum(float *complex_fft, int32_t dim) {
   int32_t half_dim = dim / 2;

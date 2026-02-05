@@ -4,9 +4,9 @@
 
 #include <stdint.h>
 
-#include "feature-window.h"
-#include "mel-computations.h"
-#include "rfft.h"
+#include "kaldi-native-fbank/feature-window.h"
+#include "kaldi-native-fbank/mel-computations.h"
+#include "kaldi-native-fbank/rfft.h"
 
 typedef struct {
   knf_frame_opts frame_opts;

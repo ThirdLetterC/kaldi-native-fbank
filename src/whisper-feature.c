@@ -1,9 +1,7 @@
-#include <math.h>
-#include <stdlib.h>
 #include <string.h>
 
-#include "feature-functions.h"
-#include "whisper-feature.h"
+#include "kaldi-native-fbank/feature-functions.h"
+#include "kaldi-native-fbank/whisper-feature.h"
 
 void knf_whisper_opts_default(knf_whisper_opts *opts) {
   knf_frame_opts_default(&opts->frame_opts);

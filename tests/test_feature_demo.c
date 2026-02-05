@@ -4,9 +4,9 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "feature-fbank.h"
-#include "feature-window.h"
-#include "online-feature.h"
+#include "kaldi-native-fbank/feature-fbank.h"
+#include "kaldi-native-fbank/feature-window.h"
+#include "kaldi-native-fbank/online-feature.h"
 
 static float uniform_neg1_1() {
   return (float)rand() / (float)RAND_MAX * 2.0f - 1.0f;

@@ -4,8 +4,8 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "feature-window.h"
-#include "log.h"
+#include "kaldi-native-fbank/feature-window.h"
+#include "kaldi-native-fbank/log.h"
 
 constexpr double KNF_PI = 3.14159265358979323846;
 

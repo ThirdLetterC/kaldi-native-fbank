@@ -4,7 +4,7 @@
 
 #include <stdint.h>
 
-#include "stft.h"
+#include "kaldi-native-fbank/stft.h"
 
 typedef struct {
   int32_t n_fft;

@@ -3,7 +3,7 @@
 #include <math.h>
 #include <stdlib.h>
 
-#include "kaldi-math.h"
+#include "kaldi-native-fbank/kaldi-math.h"
 
 void knf_random_state_init(knf_random_state *state) {
   state->seed = (unsigned)rand();

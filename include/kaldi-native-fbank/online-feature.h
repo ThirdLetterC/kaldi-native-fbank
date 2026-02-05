@@ -4,11 +4,11 @@
 
 #include <stdint.h>
 
-#include "feature-fbank.h"
-#include "feature-mfcc.h"
-#include "feature-raw-audio-samples.h"
-#include "feature-window.h"
-#include "whisper-feature.h"
+#include "kaldi-native-fbank/feature-fbank.h"
+#include "kaldi-native-fbank/feature-mfcc.h"
+#include "kaldi-native-fbank/feature-raw-audio-samples.h"
+#include "kaldi-native-fbank/feature-window.h"
+#include "kaldi-native-fbank/whisper-feature.h"
 
 typedef enum {
   KNF_ONLINE_FBANK,

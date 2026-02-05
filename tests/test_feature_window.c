@@ -1,7 +1,7 @@
 #include <assert.h>
 #include <stdio.h>
 
-#include "feature-window.h"
+#include "kaldi-native-fbank/feature-window.h"
 
 int main() {
   knf_frame_opts opts;

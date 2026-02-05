@@ -2,7 +2,7 @@
 #include <math.h>
 #include <stdio.h>
 
-#include "rfft.h"
+#include "kaldi-native-fbank/rfft.h"
 
 int main() {
   float signal[8] = {0, 1, 2, 3, 4, 5, 6, 7};
