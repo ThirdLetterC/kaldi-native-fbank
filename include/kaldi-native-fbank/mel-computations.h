@@ -1,6 +1,5 @@
 // Mel filter bank creation in C23.
-#ifndef KALDI_NATIVE_FBANK_CSRC_MEL_COMPUTATIONS_H_
-#define KALDI_NATIVE_FBANK_CSRC_MEL_COMPUTATIONS_H_
+#pragma once
 
 #include <stdint.h>
 
@@ -33,5 +32,3 @@ void knf_mel_opts_default(knf_mel_opts *opts);
 void knf_mel_banks_destroy(knf_mel_banks *banks);
 void knf_mel_compute(const knf_mel_banks *banks, const float *fft_energies,
                      float *mel_energies_out);
-
-#endif  // KALDI_NATIVE_FBANK_CSRC_MEL_COMPUTATIONS_H_

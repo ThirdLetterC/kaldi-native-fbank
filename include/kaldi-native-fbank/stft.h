@@ -1,6 +1,5 @@
 // Short-time Fourier Transform in C23.
-#ifndef KALDI_NATIVE_FBANK_CSRC_STFT_H_
-#define KALDI_NATIVE_FBANK_CSRC_STFT_H_
+#pragma once
 
 #include <stdint.h>
 
@@ -29,5 +28,3 @@ void knf_stft_config_default(knf_stft_config *cfg);
                                     const float *data, int32_t n,
                                     knf_stft_result *out);
 void knf_stft_result_free(knf_stft_result *res);
-
-#endif // KALDI_NATIVE_FBANK_CSRC_STFT_H_

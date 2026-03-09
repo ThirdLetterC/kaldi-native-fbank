@@ -1,6 +1,5 @@
 // MFCC computation in C23.
-#ifndef KALDI_NATIVE_FBANK_CSRC_FEATURE_MFCC_H_
-#define KALDI_NATIVE_FBANK_CSRC_FEATURE_MFCC_H_
+#pragma once
 
 #include <stdint.h>
 
@@ -38,5 +37,3 @@ int32_t knf_mfcc_dim(const knf_mfcc_computer *c);
 bool knf_mfcc_need_raw_log_energy(const knf_mfcc_computer *c);
 void knf_mfcc_compute(knf_mfcc_computer *c, float signal_raw_log_energy,
                       float vtln_warp, float *signal_frame, float *feature);
-
-#endif // KALDI_NATIVE_FBANK_CSRC_FEATURE_MFCC_H_

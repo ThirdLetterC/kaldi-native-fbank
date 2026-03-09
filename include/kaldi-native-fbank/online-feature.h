@@ -1,6 +1,5 @@
 // Simple online feature extractor wrappers in C23.
-#ifndef KALDI_NATIVE_FBANK_CSRC_ONLINE_FEATURE_H_
-#define KALDI_NATIVE_FBANK_CSRC_ONLINE_FEATURE_H_
+#pragma once
 
 #include <stdint.h>
 
@@ -59,5 +58,3 @@ void knf_online_feature_destroy(knf_online_feature *f);
 [[nodiscard]] bool knf_online_input_finished(knf_online_feature *f);
 int32_t knf_online_num_frames_ready(const knf_online_feature *f);
 const float *knf_online_get_frame(const knf_online_feature *f, int32_t frame);
-
-#endif  // KALDI_NATIVE_FBANK_CSRC_ONLINE_FEATURE_H_

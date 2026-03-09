@@ -2,19 +2,11 @@
 // Minimal C23 logging and check helpers for KNF.
 // This intentionally replaces the old C++ stream-style logger.
 
-#ifndef KALDI_NATIVE_FBANK_CSRC_LOG_H_
-#define KALDI_NATIVE_FBANK_CSRC_LOG_H_
+#pragma once
 
 #include <inttypes.h>
 #include <stdarg.h>
 #include <stdint.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-
-#ifdef __cplusplus
-extern "C" {
-#endif
 
 typedef enum {
   KNF_LOG_TRACE = 0,
@@ -98,9 +90,3 @@ _Noreturn void knf_fail(const char *expr, const char *file, const char *func,
   KNF_LOG(KNF_LOG_WARNING, fmt __VA_OPT__(, ) __VA_ARGS__)
 #define KNF_LOG_ERROR(fmt, ...) \
   KNF_LOG(KNF_LOG_ERROR, fmt __VA_OPT__(, ) __VA_ARGS__)
-
-#ifdef __cplusplus
-}
-#endif
-
-#endif  // KALDI_NATIVE_FBANK_CSRC_LOG_H_

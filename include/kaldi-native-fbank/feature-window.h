@@ -1,12 +1,7 @@
 // Feature window utilities rewritten for C23.
-#ifndef KALDI_NATIVE_FBANK_CSRC_FEATURE_WINDOW_H_
-#define KALDI_NATIVE_FBANK_CSRC_FEATURE_WINDOW_H_
+#pragma once
 
 #include <stdint.h>
-
-#ifdef __cplusplus
-extern "C" {
-#endif
 
 typedef struct {
   float samp_freq;
@@ -52,9 +47,3 @@ void knf_process_window(const knf_frame_opts *opts,
                         const knf_window *window_function, float *window,
                         float *log_energy_pre_window);
 float knf_inner_product(const float *a, const float *b, int32_t n);
-
-#ifdef __cplusplus
-}
-#endif
-
-#endif // KALDI_NATIVE_FBANK_CSRC_FEATURE_WINDOW_H_

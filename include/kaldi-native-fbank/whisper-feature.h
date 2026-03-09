@@ -1,6 +1,5 @@
 // Whisper-style mel feature computation in C23.
-#ifndef KALDI_NATIVE_FBANK_CSRC_WHISPER_FEATURE_H_
-#define KALDI_NATIVE_FBANK_CSRC_WHISPER_FEATURE_H_
+#pragma once
 
 #include <stdint.h>
 
@@ -28,5 +27,3 @@ int32_t knf_whisper_dim(const knf_whisper_computer *c);
 bool knf_whisper_need_raw_log_energy(const knf_whisper_computer *c);
 void knf_whisper_compute(knf_whisper_computer *c, float signal_raw_log_energy,
                          float vtln_warp, float *signal_frame, float *feature);
-
-#endif // KALDI_NATIVE_FBANK_CSRC_WHISPER_FEATURE_H_

@@ -1,14 +1,9 @@
 // include/rfft.h
 // Simple real FFT wrapper backed by pocketfft for C23 build.
 
-#ifndef KALDI_NATIVE_FBANK_CSRC_RFFT_H_
-#define KALDI_NATIVE_FBANK_CSRC_RFFT_H_
+#pragma once
 
 #include <stdint.h>
-
-#ifdef __cplusplus
-extern "C" {
-#endif
 
 typedef struct {
   int32_t n;
@@ -23,9 +18,3 @@ typedef struct {
                                                         // nullptr.
 void knf_rfft_destroy(knf_rfft *fft);
 [[nodiscard]] bool knf_rfft_compute(knf_rfft *fft, float *in_out);
-
-#ifdef __cplusplus
-}
-#endif
-
-#endif  // KALDI_NATIVE_FBANK_CSRC_RFFT_H_

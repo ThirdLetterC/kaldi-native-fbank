@@ -1,6 +1,5 @@
 // include/kaldi-math.h - minimal C23 math helpers
-#ifndef KALDI_NATIVE_FBANK_CSRC_KALDI_MATH_H_
-#define KALDI_NATIVE_FBANK_CSRC_KALDI_MATH_H_
+#pragma once
 
 #include <math.h>
 #include <stdint.h>
@@ -22,5 +21,3 @@ int knf_rand(knf_random_state *state);
 float knf_rand_uniform(knf_random_state *state);
 float knf_rand_gauss(knf_random_state *state);
 void knf_sqrt_inplace(float *in_out, int32_t n);
-
-#endif // KALDI_NATIVE_FBANK_CSRC_KALDI_MATH_H_
