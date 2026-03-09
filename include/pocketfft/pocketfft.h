@@ -10,8 +10,7 @@
  *  \author Martin Reinecke
  */
 
-#ifndef POCKETFFT_H
-#define POCKETFFT_H
+#pragma once
 
 #include <stddef.h>
 
@@ -34,5 +33,3 @@ void destroy_rfft_plan(rfft_plan plan);
 [[nodiscard]] int rfft_backward(rfft_plan plan, double c[], double fct);
 [[nodiscard]] int rfft_forward(rfft_plan plan, double c[], double fct);
 [[nodiscard]] size_t rfft_length(rfft_plan plan);
-
-#endif

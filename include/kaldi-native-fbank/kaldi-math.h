@@ -1,9 +1,7 @@
 // include/kaldi-math.h - minimal C23 math helpers
 #pragma once
 
-#include <math.h>
 #include <stdint.h>
-#include <stdlib.h>
 
 constexpr double KNF_PI = 3.14159265358979323846;
 constexpr double KNF_TWO_PI = 6.28318530717958647692;
