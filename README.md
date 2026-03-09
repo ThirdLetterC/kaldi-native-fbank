@@ -11,8 +11,11 @@ Minimal C23 implementation of Kaldi-style filterbank, MFCC, STFT/ISTFT, and rela
   `zig build`
 - Run the C test executables:  
   `zig build test`
+- Run the sample program under `examples/`:  
+  `zig build run-online_fbank_example`
 
 ## Layout
-- Core sources: `src/*.c`, headers in `src/include`
-- Zig build script: `build.zig` (installs `kaldi-native-fbank-core` and test binaries)
+- Core sources: `src/*.c`, public headers in `include/kaldi-native-fbank`
+- Examples: `examples/*.c`
+- Zig build script: `build.zig` (installs `kaldi-native-fbank-core`, examples, and test binaries)
 - Build outputs: `zig-out`, cache in `.zig-cache` (both gitignored)

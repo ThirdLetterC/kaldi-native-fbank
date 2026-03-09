@@ -37,6 +37,15 @@ const test_sources = [_]struct { name: []const u8, path: []const u8 }{
     .{ .name = "test_whisper", .path = "tests/test_whisper.c" },
 };
 
+const example_sources =
+    [_]struct { name: []const u8, path: []const u8, description: []const u8 }{
+        .{
+            .name = "online_fbank_example",
+            .path = "examples/online_fbank.c",
+            .description = "Run the online fbank example",
+        },
+    };
+
 pub fn build(b: *std.Build) void {
     const target = b.standardTargetOptions(.{});
     const optimize = b.standardOptimizeOption(.{});
@@ -65,6 +74,37 @@ pub fn build(b: *std.Build) void {
         .linkage = .static,
     });
     b.installArtifact(lib);
+
+    for (example_sources) |example| {
+        const example_module = b.createModule(.{
+            .target = target,
+            .optimize = optimize,
+            .link_libc = true,
+            .sanitize_c = sanitize,
+        });
+        example_module.addIncludePath(.{ .src_path = .{ .owner = b, .sub_path = "src" } });
+        example_module.addIncludePath(.{ .src_path = .{ .owner = b, .sub_path = "include" } });
+        example_module.addCSourceFiles(.{
+            .files = &[_][]const u8{example.path},
+            .flags = &c_flags,
+        });
+
+        const exe = b.addExecutable(.{
+            .name = example.name,
+            .root_module = example_module,
+        });
+        exe.linkLibrary(lib);
+        linkCoreDeps(exe, target);
+
+        b.installArtifact(exe);
+
+        const run = b.addRunArtifact(exe);
+        const run_step = b.step(
+            b.fmt("run-{s}", .{example.name}),
+            example.description,
+        );
+        run_step.dependOn(&run.step);
+    }
 
     const test_step = b.step("test", "Run C test executables");
     for (test_sources) |t| {
