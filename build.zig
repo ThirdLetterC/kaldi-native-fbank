@@ -40,11 +40,20 @@ const test_sources = [_]struct { name: []const u8, path: []const u8 }{
 pub fn build(b: *std.Build) void {
     const target = b.standardTargetOptions(.{});
     const optimize = b.standardOptimizeOption(.{});
+    const sanitize: std.zig.SanitizeC = b.option(
+        std.zig.SanitizeC,
+        "sanitize",
+        "Set C sanitizer mode: off, trap, or full",
+    ) orelse if (optimize == .Debug)
+        .full
+    else
+        .off;
 
     const lib_module = b.createModule(.{
         .target = target,
         .optimize = optimize,
         .link_libc = true,
+        .sanitize_c = sanitize,
     });
     lib_module.addIncludePath(.{ .src_path = .{ .owner = b, .sub_path = "src" } });
     lib_module.addIncludePath(.{ .src_path = .{ .owner = b, .sub_path = "include" } });
@@ -63,6 +72,7 @@ pub fn build(b: *std.Build) void {
             .target = target,
             .optimize = optimize,
             .link_libc = true,
+            .sanitize_c = sanitize,
         });
         test_module.addIncludePath(.{ .src_path = .{ .owner = b, .sub_path = "src" } });
         test_module.addIncludePath(.{ .src_path = .{ .owner = b, .sub_path = "include" } });
