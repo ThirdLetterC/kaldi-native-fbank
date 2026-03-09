@@ -15,15 +15,15 @@ typedef struct {
   bool inverse;
   float scale;
   void *plan;
-  float *work; // size n
+  float *work;  // size n
 } knf_rfft;
 
 [[nodiscard]] knf_rfft *knf_rfft_create(int32_t n, bool inverse);
 void knf_rfft_destroy(knf_rfft *fft);
-void knf_rfft_compute(knf_rfft *fft, float *in_out);
+[[nodiscard]] bool knf_rfft_compute(knf_rfft *fft, float *in_out);
 
 #ifdef __cplusplus
 }
 #endif
 
-#endif // KALDI_NATIVE_FBANK_CSRC_RFFT_H_
+#endif  // KALDI_NATIVE_FBANK_CSRC_RFFT_H_

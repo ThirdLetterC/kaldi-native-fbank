@@ -53,10 +53,11 @@ typedef struct {
                                              knf_online_feature *out);
 
 void knf_online_feature_destroy(knf_online_feature *f);
-void knf_online_accept_waveform(knf_online_feature *f, float sampling_rate,
-                                const float *waveform, int32_t n);
-void knf_online_input_finished(knf_online_feature *f);
+[[nodiscard]] bool knf_online_accept_waveform(knf_online_feature *f,
+                                              float sampling_rate,
+                                              const float *waveform, int32_t n);
+[[nodiscard]] bool knf_online_input_finished(knf_online_feature *f);
 int32_t knf_online_num_frames_ready(const knf_online_feature *f);
 const float *knf_online_get_frame(const knf_online_feature *f, int32_t frame);
 
-#endif // KALDI_NATIVE_FBANK_CSRC_ONLINE_FEATURE_H_
+#endif  // KALDI_NATIVE_FBANK_CSRC_ONLINE_FEATURE_H_

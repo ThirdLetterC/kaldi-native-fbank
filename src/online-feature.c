@@ -1,7 +1,8 @@
 // Simple online feature extraction orchestrator.
 
-#include <stdlib.h>
 #include <limits.h>
+#include <math.h>
+#include <stdlib.h>
 #include <string.h>
 
 #include "kaldi-native-fbank/feature-window.h"
@@ -12,8 +13,14 @@ static bool knf_online_init_common(knf_online_feature *f, void *computer,
                                    knf_online_kind kind, knf_compute_fn compute,
                                    knf_frame_fn frame_fn, knf_dim_fn dim_fn,
                                    knf_need_raw_energy_fn need_fn) {
+  if (f == nullptr || computer == nullptr || compute == nullptr ||
+      frame_fn == nullptr || dim_fn == nullptr || need_fn == nullptr) {
+    return false;
+  }
+
   memset(f, 0, sizeof(*f));
-  if (!knf_make_window_from_opts(frame_fn(computer), &f->window_fn)) {
+  const knf_frame_opts *opts = frame_fn(computer);
+  if (opts == nullptr || !knf_make_window_from_opts(opts, &f->window_fn)) {
     return false;
   }
   f->waveform_cap = 1024;
@@ -31,44 +38,70 @@ static bool knf_online_init_common(knf_online_feature *f, void *computer,
   return true;
 }
 
-static void knf_online_compute_new(knf_online_feature *f) {
+static bool knf_online_compute_new(knf_online_feature *f) {
+  if (f == nullptr || f->computer == nullptr || f->frame_opts == nullptr ||
+      f->dim == nullptr || f->need_raw_energy == nullptr ||
+      f->compute == nullptr) {
+    return false;
+  }
+
   const knf_frame_opts *opts = f->frame_opts(f->computer);
+  if (opts == nullptr) {
+    return false;
+  }
   int64_t total_samples = f->waveform_offset + f->waveform_size;
   int32_t prev_frames = f->num_features;
   int32_t new_frames = knf_num_frames(total_samples, opts, f->input_finished);
-  if (new_frames <= prev_frames)
-    return;
+  if (new_frames <= prev_frames) return true;
 
   int32_t padded = knf_padded_window_size(opts);
+  if (padded <= 0) {
+    return false;
+  }
   float *window = (float *)calloc((size_t)padded, sizeof(float));
   if (window == nullptr) {
-    knf_fail("alloc", __FILE__, __func__, __LINE__, "window alloc failed");
+    return false;
   }
   for (int32_t frame = prev_frames; frame < new_frames; ++frame) {
     float raw_log_energy = 0.0f;
-    if (!knf_extract_window(f->waveform_offset, f->waveform, f->waveform_size,
-                            frame, opts, &f->window_fn, window,
-                            f->need_raw_energy(f->computer) ? &raw_log_energy
-                                                            : nullptr)) {
+    if (!knf_extract_window(
+            f->waveform_offset, f->waveform, f->waveform_size, frame, opts,
+            &f->window_fn, window,
+            f->need_raw_energy(f->computer) ? &raw_log_energy : nullptr)) {
       free(window);
-      knf_fail("extract", __FILE__, __func__, __LINE__,
-               "window extraction failed");
+      return false;
     }
     if (f->num_features == f->features_cap) {
-      f->features_cap = f->features_cap ? f->features_cap * 2 : 16;
-      auto new_features = (float **)realloc(
-          f->features, sizeof(float *) * (size_t)f->features_cap);
+      int32_t next_cap = 16;
+      if (f->features_cap > 0) {
+        if (f->features_cap > INT32_MAX / 2) {
+          free(window);
+          return false;
+        }
+        next_cap = f->features_cap * 2;
+      }
+      if ((size_t)next_cap > SIZE_MAX / sizeof(float *)) {
+        free(window);
+        return false;
+      }
+      auto new_features =
+          (float **)realloc(f->features, sizeof(float *) * (size_t)next_cap);
       if (new_features == nullptr) {
         free(window);
-        knf_fail("alloc", __FILE__, __func__, __LINE__, "feature list growth");
+        return false;
       }
+      f->features_cap = next_cap;
       f->features = new_features;
     }
     int32_t dim = f->dim(f->computer);
+    if (dim <= 0) {
+      free(window);
+      return false;
+    }
     f->features[f->num_features] = (float *)calloc((size_t)dim, sizeof(float));
     if (f->features[f->num_features] == nullptr) {
       free(window);
-      knf_fail("alloc", __FILE__, __func__, __LINE__, "feature alloc failed");
+      return false;
     }
     f->compute(f->computer, raw_log_energy, 1.0f, window,
                f->features[f->num_features]);
@@ -84,6 +117,7 @@ static void knf_online_compute_new(knf_online_feature *f) {
     f->waveform_size -= discard;
     f->waveform_offset += discard;
   }
+  return true;
 }
 
 static int32_t knf_online_dim_fbank(const void *c) {
@@ -146,8 +180,7 @@ static void knf_online_compute_whisper(void *c, float e, float v, float *w,
                                            knf_online_feature *out) {
   knf_fbank_computer *c =
       (knf_fbank_computer *)calloc(1, sizeof(knf_fbank_computer));
-  if (c == nullptr)
-    return false;
+  if (c == nullptr) return false;
   if (!knf_fbank_computer_create(opts, c)) {
     free(c);
     return false;
@@ -166,8 +199,7 @@ static void knf_online_compute_whisper(void *c, float e, float v, float *w,
                                           knf_online_feature *out) {
   knf_mfcc_computer *c =
       (knf_mfcc_computer *)calloc(1, sizeof(knf_mfcc_computer));
-  if (c == nullptr)
-    return false;
+  if (c == nullptr) return false;
   if (!knf_mfcc_computer_create(opts, c)) {
     free(c);
     return false;
@@ -186,8 +218,7 @@ static void knf_online_compute_whisper(void *c, float e, float v, float *w,
                                          knf_online_feature *out) {
   knf_raw_audio_computer *c =
       (knf_raw_audio_computer *)calloc(1, sizeof(knf_raw_audio_computer));
-  if (c == nullptr)
-    return false;
+  if (c == nullptr) return false;
   if (!knf_raw_audio_computer_create(opts, c)) {
     free(c);
     return false;
@@ -206,8 +237,7 @@ static void knf_online_compute_whisper(void *c, float e, float v, float *w,
                                              knf_online_feature *out) {
   knf_whisper_computer *c =
       (knf_whisper_computer *)calloc(1, sizeof(knf_whisper_computer));
-  if (c == nullptr)
-    return false;
+  if (c == nullptr) return false;
   if (!knf_whisper_computer_create(opts, c)) {
     free(c);
     return false;
@@ -224,89 +254,102 @@ static void knf_online_compute_whisper(void *c, float e, float v, float *w,
 }
 
 void knf_online_feature_destroy(knf_online_feature *f) {
-  if (f == nullptr)
-    return;
+  if (f == nullptr) return;
   if (f->computer != nullptr) {
     switch (f->kind) {
-    case KNF_ONLINE_FBANK:
-      knf_fbank_computer_destroy((knf_fbank_computer *)f->computer);
-      break;
-    case KNF_ONLINE_MFCC:
-      knf_mfcc_computer_destroy((knf_mfcc_computer *)f->computer);
-      break;
-    case KNF_ONLINE_RAW:
-      knf_raw_audio_computer_destroy((knf_raw_audio_computer *)f->computer);
-      break;
-    case KNF_ONLINE_WHISPER:
-      knf_whisper_computer_destroy((knf_whisper_computer *)f->computer);
-      break;
+      case KNF_ONLINE_FBANK:
+        knf_fbank_computer_destroy((knf_fbank_computer *)f->computer);
+        break;
+      case KNF_ONLINE_MFCC:
+        knf_mfcc_computer_destroy((knf_mfcc_computer *)f->computer);
+        break;
+      case KNF_ONLINE_RAW:
+        knf_raw_audio_computer_destroy((knf_raw_audio_computer *)f->computer);
+        break;
+      case KNF_ONLINE_WHISPER:
+        knf_whisper_computer_destroy((knf_whisper_computer *)f->computer);
+        break;
     }
     free(f->computer);
   }
   knf_free_window(&f->window_fn);
   free(f->waveform);
-  for (int32_t i = 0; i < f->num_features; ++i)
-    free(f->features[i]);
+  for (int32_t i = 0; i < f->num_features; ++i) free(f->features[i]);
   free(f->features);
   memset(f, 0, sizeof(*f));
 }
 
-void knf_online_accept_waveform(knf_online_feature *f, float sampling_rate,
-                                const float *waveform, int32_t n) {
-  KNF_CHECK(f != nullptr);
+[[nodiscard]] bool knf_online_accept_waveform(knf_online_feature *f,
+                                              float sampling_rate,
+                                              const float *waveform,
+                                              int32_t n) {
+  if (f == nullptr || f->computer == nullptr || f->frame_opts == nullptr) {
+    return false;
+  }
   if (n < 0) {
-    knf_fail("length", __FILE__, __func__, __LINE__,
-             "negative sample count %" PRId32, n);
+    return false;
   }
-  if (n == 0)
-    return;
-  if (waveform == nullptr) {
-    knf_fail("waveform", __FILE__, __func__, __LINE__,
-             "waveform pointer is null for non-zero sample count");
+  if (n == 0) {
+    return true;
   }
-  if (f->input_finished) {
-    knf_fail("finished", __FILE__, __func__, __LINE__,
-             "AcceptWaveform after finish");
+  if (waveform == nullptr || f->input_finished) {
+    return false;
   }
-  if (sampling_rate != f->frame_opts(f->computer)->samp_freq) {
-    knf_fail("rate", __FILE__, __func__, __LINE__, "sampling rate mismatch");
+  const knf_frame_opts *opts = f->frame_opts(f->computer);
+  if (opts == nullptr || fabsf(sampling_rate - opts->samp_freq) > 1e-6f) {
+    return false;
   }
   int64_t needed = (int64_t)f->waveform_size + n;
   if (needed > INT32_MAX) {
-    knf_fail("alloc", __FILE__, __func__, __LINE__,
-             "waveform too large (%" PRId64 " samples)", needed);
+    return false;
   }
   if (needed > f->waveform_cap) {
-    while (needed > f->waveform_cap) {
-      if (f->waveform_cap > INT32_MAX / 2) {
-        f->waveform_cap = INT32_MAX;
+    int32_t next_cap = f->waveform_cap > 0 ? f->waveform_cap : 1024;
+    while (needed > next_cap) {
+      if (next_cap > INT32_MAX / 2) {
+        next_cap = INT32_MAX;
       } else {
-        f->waveform_cap *= 2;
+        next_cap *= 2;
+      }
+      if (next_cap == INT32_MAX && needed > next_cap) {
+        return false;
       }
     }
-    auto *new_waveform =
-        (float *)realloc(f->waveform, sizeof(float) * (size_t)f->waveform_cap);
-    if (new_waveform == nullptr) {
-      knf_fail("alloc", __FILE__, __func__, __LINE__, "waveform growth failed");
+    if ((size_t)next_cap > SIZE_MAX / sizeof(float)) {
+      return false;
     }
+    auto *new_waveform =
+        (float *)realloc(f->waveform, sizeof(float) * (size_t)next_cap);
+    if (new_waveform == nullptr) {
+      return false;
+    }
+    f->waveform_cap = next_cap;
     f->waveform = new_waveform;
   }
   memcpy(f->waveform + f->waveform_size, waveform, sizeof(float) * n);
   f->waveform_size += n;
-  knf_online_compute_new(f);
+  return knf_online_compute_new(f);
 }
 
-void knf_online_input_finished(knf_online_feature *f) {
+[[nodiscard]] bool knf_online_input_finished(knf_online_feature *f) {
+  if (f == nullptr || f->computer == nullptr || f->input_finished) {
+    return false;
+  }
   f->input_finished = true;
-  knf_online_compute_new(f);
+  return knf_online_compute_new(f);
 }
 
 int32_t knf_online_num_frames_ready(const knf_online_feature *f) {
+  if (f == nullptr) {
+    return 0;
+  }
   return f->num_features;
 }
 
 const float *knf_online_get_frame(const knf_online_feature *f, int32_t frame) {
-  if (frame < 0 || frame >= f->num_features)
+  if (f == nullptr) {
     return nullptr;
+  }
+  if (frame < 0 || frame >= f->num_features) return nullptr;
   return f->features[frame];
 }

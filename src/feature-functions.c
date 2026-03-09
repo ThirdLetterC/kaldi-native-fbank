@@ -2,6 +2,10 @@
 #include "kaldi-native-fbank/feature-functions.h"
 
 void knf_compute_power_spectrum(float *complex_fft, int32_t dim) {
+  if (complex_fft == nullptr || dim < 2 || (dim & 1) != 0) {
+    return;
+  }
+
   int32_t half_dim = dim / 2;
   float first_energy = complex_fft[0] * complex_fft[0];
   float last_energy = complex_fft[1] * complex_fft[1];

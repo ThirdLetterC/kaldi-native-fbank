@@ -38,8 +38,7 @@ int main() {
   float max_err = 0.0f;
   for (int i = 0; i < n; ++i) {
     float err = fabsf(recon[i] - wave[i]);
-    if (err > max_err)
-      max_err = err;
+    if (err > max_err) max_err = err;
   }
   printf("max reconstruction error: %f\n", max_err);
   assert(max_err < 1e-2f);
@@ -61,14 +60,21 @@ int main() {
   assert(bad_recon == nullptr);
   assert(bad_recon_n == 0);
 
-  knf_stft_result invalid_spec = {
-      .real = nullptr, .imag = nullptr, .num_frames = 1, .n_fft = stft_cfg.n_fft};
+  knf_stft_result invalid_spec = {.real = nullptr,
+                                  .imag = nullptr,
+                                  .num_frames = 1,
+                                  .n_fft = stft_cfg.n_fft};
   float *invalid_recon = &dummy;
   int32_t invalid_recon_n = 456;
   assert(!knf_istft_compute(&istft_cfg, &invalid_spec, &invalid_recon,
                             &invalid_recon_n));
   assert(invalid_recon == nullptr);
   assert(invalid_recon_n == 0);
+
+  knf_stft_config bad_stft = stft_cfg;
+  bad_stft.win_length = bad_stft.n_fft + 1;
+  knf_stft_result bad_res = {0};
+  assert(!knf_stft_compute(&bad_stft, wave, n, &bad_res));
 
   free(recon);
   knf_stft_result_free(&res);

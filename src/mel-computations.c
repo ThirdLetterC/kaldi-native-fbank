@@ -1,5 +1,6 @@
 // Mel filter bank implementation in C23.
 
+#include <limits.h>
 #include <math.h>
 #include <stdlib.h>
 #include <string.h>
@@ -16,6 +17,10 @@ static float knf_inverse_mel_scale(float mel) {
 }
 
 void knf_mel_opts_default(knf_mel_opts *opts) {
+  if (opts == nullptr) {
+    return;
+  }
+
   opts->num_bins = 25;
   opts->low_freq = 20.0f;
   opts->high_freq = 0.0f;
@@ -24,15 +29,14 @@ void knf_mel_opts_default(knf_mel_opts *opts) {
   opts->htk_mode = false;
   opts->is_librosa = false;
   opts->use_slaney_mel_scale = true;
-  strncpy(opts->norm, "slaney", sizeof(opts->norm));
+  memcpy(opts->norm, "slaney", sizeof("slaney"));
   opts->floor_to_int_bin = false;
   opts->debug_mel = false;
 }
 
 static float knf_vtln_warp(float vtln_low, float vtln_high, float low_freq,
                            float high_freq, float vtln_warp, float freq) {
-  if (freq < low_freq || freq > high_freq)
-    return freq;
+  if (freq < low_freq || freq > high_freq) return freq;
   float l = vtln_low * fmaxf(1.0f, vtln_warp);
   float h = vtln_high * fminf(1.0f, vtln_warp);
   float scale = 1.0f / vtln_warp;
@@ -40,10 +44,8 @@ static float knf_vtln_warp(float vtln_low, float vtln_high, float low_freq,
   float Fh = scale * h;
   float scale_left = (Fl - low_freq) / (l - low_freq);
   float scale_right = (high_freq - Fh) / (high_freq - h);
-  if (freq < l)
-    return low_freq + scale_left * (freq - low_freq);
-  if (freq < h)
-    return scale * freq;
+  if (freq < l) return low_freq + scale_left * (freq - low_freq);
+  if (freq < h) return scale * freq;
   return high_freq + scale_right * (freq - high_freq);
 }
 
@@ -58,9 +60,18 @@ static float knf_vtln_warp_mel(float vtln_low, float vtln_high, float low_freq,
 static bool knf_init_weights(const knf_mel_opts *opts,
                              const knf_frame_opts *frame_opts, float vtln_warp,
                              knf_mel_banks *banks) {
+  if (opts == nullptr || frame_opts == nullptr || banks == nullptr ||
+      opts->num_bins <= 0 || vtln_warp <= 0.0f) {
+    return false;
+  }
+
+  memset(banks, 0, sizeof(*banks));
   float sample_freq = frame_opts->samp_freq;
   int32_t window_length_padded = knf_padded_window_size(frame_opts);
-  KNF_CHECK_EQ(window_length_padded % 2, 0);
+  if (!(sample_freq > 0.0f) || window_length_padded <= 0 ||
+      (window_length_padded & 1) != 0) {
+    return false;
+  }
   int32_t num_fft_bins = window_length_padded / 2;
   float nyquist = 0.5f * sample_freq;
 
@@ -70,13 +81,15 @@ static bool knf_init_weights(const knf_mel_opts *opts,
 
   if (low_freq < 0.0f || low_freq >= nyquist || high_freq <= 0.0f ||
       high_freq > nyquist || high_freq <= low_freq) {
-    knf_fail("mel_option", __FILE__, __func__, __LINE__,
-             "invalid low/high freq");
+    return false;
   }
 
   float fft_bin_width = sample_freq / window_length_padded;
   float mel_low = knf_mel_scale(low_freq);
   float mel_high = knf_mel_scale(high_freq);
+  if (!(mel_high > mel_low)) {
+    return false;
+  }
   float mel_delta = (mel_high - mel_low) / (opts->num_bins + 1);
 
   float vtln_low = opts->vtln_low;
@@ -85,8 +98,11 @@ static bool knf_init_weights(const knf_mel_opts *opts,
 
   banks->num_bins = opts->num_bins;
   banks->num_fft_bins = num_fft_bins;
-  banks->weights =
-      (float *)calloc((size_t)opts->num_bins * num_fft_bins, sizeof(float));
+  if ((size_t)opts->num_bins > SIZE_MAX / (size_t)num_fft_bins) {
+    return false;
+  }
+  banks->weights = (float *)calloc(
+      (size_t)opts->num_bins * (size_t)num_fft_bins, sizeof(float));
   if (banks->weights == nullptr) {
     return false;
   }
@@ -111,30 +127,38 @@ static bool knf_init_weights(const knf_mel_opts *opts,
       float mel = knf_mel_scale(freq);
       float weight = 0.0f;
       if (mel > left_mel && mel < right_mel) {
-        if (mel <= center_mel) {
+        if (mel <= center_mel && center_mel > left_mel) {
           weight = (mel - left_mel) / (center_mel - left_mel);
-        } else {
+        } else if (right_mel > center_mel) {
           weight = (right_mel - mel) / (right_mel - center_mel);
         }
       }
       if (weight != 0.0f) {
-        if (first == -1)
-          first = i;
+        if (first == -1) first = i;
         last = i;
         banks->weights[bin * num_fft_bins + i] = weight;
       }
     }
-    KNF_CHECK(first != -1 && last != -1);
+    if (first == -1 || last == -1) {
+      free(banks->weights);
+      banks->weights = nullptr;
+      banks->num_bins = 0;
+      banks->num_fft_bins = 0;
+      return false;
+    }
   }
   return true;
 }
 
-[[nodiscard]] knf_mel_banks *
-knf_mel_banks_create(const knf_mel_opts *opts, const knf_frame_opts *frame_opts,
-                     float vtln_warp) {
-  auto banks = (knf_mel_banks *)calloc(1, sizeof(knf_mel_banks));
-  if (banks == nullptr)
+[[nodiscard]] knf_mel_banks *knf_mel_banks_create(
+    const knf_mel_opts *opts, const knf_frame_opts *frame_opts,
+    float vtln_warp) {
+  if (opts == nullptr || frame_opts == nullptr) {
     return nullptr;
+  }
+
+  auto banks = (knf_mel_banks *)calloc(1, sizeof(knf_mel_banks));
+  if (banks == nullptr) return nullptr;
   if (!knf_init_weights(opts, frame_opts, vtln_warp, banks)) {
     free(banks);
     return nullptr;
@@ -143,8 +167,7 @@ knf_mel_banks_create(const knf_mel_opts *opts, const knf_frame_opts *frame_opts,
 }
 
 void knf_mel_banks_destroy(knf_mel_banks *banks) {
-  if (banks == nullptr)
-    return;
+  if (banks == nullptr) return;
   free(banks->weights);
   banks->weights = nullptr;
   free(banks);
@@ -152,6 +175,12 @@ void knf_mel_banks_destroy(knf_mel_banks *banks) {
 
 void knf_mel_compute(const knf_mel_banks *banks, const float *fft_energies,
                      float *mel_energies_out) {
+  if (banks == nullptr || fft_energies == nullptr ||
+      mel_energies_out == nullptr || banks->weights == nullptr ||
+      banks->num_bins <= 0 || banks->num_fft_bins <= 0) {
+    return;
+  }
+
   int32_t num_bins = banks->num_bins;
   int32_t cols = banks->num_fft_bins;
   for (int32_t r = 0; r < num_bins; ++r) {

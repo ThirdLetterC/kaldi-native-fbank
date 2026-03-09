@@ -27,8 +27,14 @@ int main() {
     return 1;
   }
   fill_wave(wave, n, 1000.0f, fopts.frame_opts.samp_freq);
-  knf_online_accept_waveform(&feat, fopts.frame_opts.samp_freq, wave, n);
-  knf_online_input_finished(&feat);
+  assert(!knf_online_accept_waveform(&feat, fopts.frame_opts.samp_freq + 1.0f,
+                                     wave, n));
+  assert(
+      knf_online_accept_waveform(&feat, fopts.frame_opts.samp_freq, wave, n));
+  assert(!knf_online_accept_waveform(&feat, fopts.frame_opts.samp_freq, nullptr,
+                                     1));
+  assert(knf_online_input_finished(&feat));
+  assert(!knf_online_input_finished(&feat));
 
   int32_t ready = knf_online_num_frames_ready(&feat);
   assert(ready > 0);

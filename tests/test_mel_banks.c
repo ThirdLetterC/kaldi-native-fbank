@@ -16,11 +16,13 @@ int main() {
   mopts.num_bins = 10;
   knf_mel_banks *banks = knf_mel_banks_create(&mopts, &fopts, 1.0f);
   assert(banks != nullptr);
+  knf_mel_opts invalid = mopts;
+  invalid.low_freq = invalid.high_freq = 100.0f;
+  assert(knf_mel_banks_create(&invalid, &fopts, 1.0f) == nullptr);
   int cols = banks->num_fft_bins;
   float *fft = (float *)calloc(cols, sizeof(float));
   assert(fft != nullptr);
-  for (int i = 0; i < cols; ++i)
-    fft[i] = (float)i;
+  for (int i = 0; i < cols; ++i) fft[i] = (float)i;
   float *out = (float *)calloc(mopts.num_bins, sizeof(float));
   assert(out != nullptr);
   knf_mel_compute(banks, fft, out);

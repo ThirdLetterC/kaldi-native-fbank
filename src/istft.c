@@ -1,7 +1,7 @@
 // Inverse STFT implementation in C.
 
-#include <math.h>
 #include <limits.h>
+#include <math.h>
 #include <stdlib.h>
 #include <string.h>
 
@@ -11,10 +11,14 @@
 #include "kaldi-native-fbank/rfft.h"
 
 void knf_istft_config_default(knf_istft_config *cfg) {
+  if (cfg == nullptr) {
+    return;
+  }
+
   cfg->n_fft = 400;
   cfg->hop_length = 160;
   cfg->win_length = 400;
-  strncpy(cfg->window_type, "povey", sizeof(cfg->window_type));
+  memcpy(cfg->window_type, "povey", sizeof("povey"));
   cfg->window = nullptr;
   cfg->window_size = 0;
   cfg->center = true;
@@ -25,18 +29,24 @@ void knf_istft_config_default(knf_istft_config *cfg) {
                                      const knf_stft_result *stft,
                                      float **out_samples,
                                      int32_t *num_samples) {
-  KNF_CHECK(cfg != nullptr);
-  KNF_CHECK(stft != nullptr);
   if (out_samples == nullptr || num_samples == nullptr) {
     return false;
   }
   *out_samples = nullptr;
   *num_samples = 0;
 
+  if (cfg == nullptr || stft == nullptr) {
+    return false;
+  }
   if (stft->real == nullptr || stft->imag == nullptr) {
     return false;
   }
-  if (cfg->n_fft <= 0 || cfg->hop_length <= 0 || cfg->win_length <= 0) {
+  if (cfg->n_fft <= 0 || cfg->hop_length <= 0 || cfg->win_length <= 0 ||
+      cfg->win_length > cfg->n_fft || (cfg->n_fft & 1) != 0) {
+    return false;
+  }
+  if (cfg->window != nullptr &&
+      (cfg->window_size <= 0 || cfg->window_size > cfg->n_fft)) {
     return false;
   }
   if (stft->n_fft != cfg->n_fft) {
@@ -48,8 +58,7 @@ void knf_istft_config_default(knf_istft_config *cfg) {
   int32_t frames = stft->num_frames;
   int32_t bins = n_fft / 2 + 1;
 
-  if (frames <= 0)
-    return false;
+  if (frames <= 0) return false;
 
   int64_t total64 = (int64_t)n_fft + (int64_t)(frames - 1) * hop;
   if (total64 <= 0 || total64 > INT32_MAX) {
@@ -81,8 +90,7 @@ void knf_istft_config_default(knf_istft_config *cfg) {
 
   knf_rfft *fft = knf_rfft_create(n_fft, true);
   if (fft == nullptr) {
-    if (owns_window)
-      knf_free_window(&window);
+    if (owns_window) knf_free_window(&window);
     free(samples);
     free(denom);
     return false;
@@ -90,8 +98,7 @@ void knf_istft_config_default(knf_istft_config *cfg) {
 
   float *frame = (float *)calloc((size_t)n_fft, sizeof(float));
   if (frame == nullptr) {
-    if (owns_window)
-      knf_free_window(&window);
+    if (owns_window) knf_free_window(&window);
     free(samples);
     free(denom);
     knf_rfft_destroy(fft);
@@ -111,7 +118,14 @@ void knf_istft_config_default(knf_istft_config *cfg) {
       frame[2 * k + 1] = imag[k] * pre_scale;
     }
 
-    knf_rfft_compute(fft, frame);
+    if (!knf_rfft_compute(fft, frame)) {
+      free(frame);
+      free(samples);
+      free(denom);
+      knf_rfft_destroy(fft);
+      if (owns_window) knf_free_window(&window);
+      return false;
+    }
     for (int32_t k = 0; k < n_fft; ++k) {
       frame[k] *= inv_n;
     }
@@ -137,20 +151,17 @@ void knf_istft_config_default(knf_istft_config *cfg) {
       }
     }
   } else {
-    for (int32_t i = 0; i < total; ++i)
-      denom[i] = 1.0f;
+    for (int32_t i = 0; i < total; ++i) denom[i] = 1.0f;
   }
 
   for (int32_t i = 0; i < total; ++i) {
-    if (denom[i] != 0.0f)
-      samples[i] /= denom[i];
+    if (denom[i] != 0.0f) samples[i] /= denom[i];
   }
 
   if (cfg->center) {
     int32_t cut = n_fft / 2;
     int32_t trimmed = total - 2 * cut;
-    if (trimmed < 0)
-      trimmed = 0;
+    if (trimmed < 0) trimmed = 0;
     size_t alloc = trimmed > 0 ? (size_t)trimmed : 1;
     float *centered = (float *)calloc(alloc, sizeof(float));
     if (centered == nullptr) {
@@ -158,8 +169,7 @@ void knf_istft_config_default(knf_istft_config *cfg) {
       free(samples);
       free(denom);
       knf_rfft_destroy(fft);
-      if (owns_window)
-        knf_free_window(&window);
+      if (owns_window) knf_free_window(&window);
       return false;
     }
     memcpy(centered, samples + cut, sizeof(float) * (size_t)trimmed);
@@ -171,8 +181,7 @@ void knf_istft_config_default(knf_istft_config *cfg) {
   free(frame);
   free(denom);
   knf_rfft_destroy(fft);
-  if (owns_window)
-    knf_free_window(&window);
+  if (owns_window) knf_free_window(&window);
 
   *out_samples = samples;
   *num_samples = total;

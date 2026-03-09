@@ -4,8 +4,8 @@
 #include <string.h>
 
 #include "kaldi-native-fbank/log.h"
-#include "pocketfft/pocketfft.h"
 #include "kaldi-native-fbank/rfft.h"
+#include "pocketfft/pocketfft.h"
 
 struct knf_rfft_state {
   rfft_plan plan;
@@ -18,8 +18,7 @@ struct knf_rfft_state {
   }
 
   auto fft = (knf_rfft *)calloc(1, sizeof(knf_rfft));
-  if (fft == nullptr)
-    return nullptr;
+  if (fft == nullptr) return nullptr;
 
   auto state =
       (struct knf_rfft_state *)calloc(1, sizeof(struct knf_rfft_state));
@@ -44,30 +43,32 @@ struct knf_rfft_state {
 }
 
 void knf_rfft_destroy(knf_rfft *fft) {
-  if (!fft)
-    return;
+  if (!fft) return;
   struct knf_rfft_state *state = (struct knf_rfft_state *)fft->plan;
   if (state) {
-    if (state->plan)
-      destroy_rfft_plan(state->plan);
+    if (state->plan) destroy_rfft_plan(state->plan);
     free(state->buffer);
     free(state);
   }
   free(fft);
 }
 
-void knf_rfft_compute(knf_rfft *fft, float *in_out) {
-  KNF_CHECK(fft != nullptr);
-  KNF_CHECK(in_out != nullptr);
+[[nodiscard]] bool knf_rfft_compute(knf_rfft *fft, float *in_out) {
+  if (fft == nullptr || in_out == nullptr || fft->plan == nullptr ||
+      fft->n <= 0) {
+    return false;
+  }
 
   struct knf_rfft_state *state = (struct knf_rfft_state *)fft->plan;
+  if (state->plan == nullptr || state->buffer == nullptr) {
+    return false;
+  }
   if (!fft->inverse) {
-    for (int32_t i = 0; i < fft->n; ++i)
-      state->buffer[i] = (double)in_out[i];
+    for (int32_t i = 0; i < fft->n; ++i) state->buffer[i] = (double)in_out[i];
     const int status = rfft_forward(state->plan, state->buffer, 1.0);
     if (status != 0) {
       KNF_LOG_ERROR("rfft_forward failed with status %d", status);
-      return;
+      return false;
     }
 
     in_out[0] = (float)state->buffer[0];
@@ -88,10 +89,10 @@ void knf_rfft_compute(knf_rfft *fft, float *in_out) {
     const int status = rfft_backward(state->plan, state->buffer, 1.0);
     if (status != 0) {
       KNF_LOG_ERROR("rfft_backward failed with status %d", status);
-      return;
+      return false;
     }
 
-    for (int32_t i = 0; i < fft->n; ++i)
-      in_out[i] = (float)state->buffer[i];
+    for (int32_t i = 0; i < fft->n; ++i) in_out[i] = (float)state->buffer[i];
   }
+  return true;
 }

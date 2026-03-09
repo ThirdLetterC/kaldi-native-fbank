@@ -6,6 +6,9 @@
 #include "kaldi-native-fbank/kaldi-math.h"
 
 void knf_random_state_init(knf_random_state *state) {
+  if (state == nullptr) {
+    return;
+  }
   state->seed = (unsigned)rand();
 }
 
@@ -28,6 +31,10 @@ float knf_rand_gauss(knf_random_state *state) {
 }
 
 void knf_sqrt_inplace(float *in_out, int32_t n) {
+  if (in_out == nullptr || n <= 0) {
+    return;
+  }
+
   for (int32_t i = 0; i < n; ++i) {
     in_out[i] = sqrtf(in_out[i]);
   }

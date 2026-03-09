@@ -1,5 +1,6 @@
 // C23 implementation of feature window utilities.
 
+#include <limits.h>
 #include <math.h>
 #include <stdlib.h>
 #include <string.h>
@@ -8,9 +9,29 @@
 #include "kaldi-native-fbank/log.h"
 
 constexpr double KNF_PI = 3.14159265358979323846;
+constexpr int32_t KNF_MAX_POWER_OF_TWO = INT32_C(1) << 30;
+
+static bool knf_fixed_cstr_eq(const char *text, size_t text_cap,
+                              const char *literal) {
+  if (text == nullptr || literal == nullptr || text_cap == 0) {
+    return false;
+  }
+
+  size_t i = 0;
+  while (literal[i] != '\0') {
+    if (i >= text_cap || text[i] != literal[i]) {
+      return false;
+    }
+    ++i;
+  }
+  return i < text_cap && text[i] == '\0';
+}
 
 int32_t knf_round_up_power_of_two(int32_t n) {
-  KNF_CHECK_GT(n, 0);
+  if (n <= 0 || n > KNF_MAX_POWER_OF_TWO) {
+    return 0;
+  }
+
   n--;
   n |= n >> 1;
   n |= n >> 2;
@@ -21,42 +42,73 @@ int32_t knf_round_up_power_of_two(int32_t n) {
 }
 
 void knf_frame_opts_default(knf_frame_opts *opts) {
+  if (opts == nullptr) {
+    return;
+  }
+
   opts->samp_freq = 16000.0f;
   opts->frame_shift_ms = 10.0f;
   opts->frame_length_ms = 25.0f;
   opts->dither = 0.00003f;
   opts->preemph_coeff = 0.97f;
   opts->remove_dc_offset = true;
-  strncpy(opts->window_type, "povey", sizeof(opts->window_type));
+  memcpy(opts->window_type, "povey", sizeof("povey"));
   opts->round_to_power_of_two = true;
   opts->blackman_coeff = 0.42f;
   opts->snip_edges = true;
 }
 
 int32_t knf_window_shift(const knf_frame_opts *opts) {
-  return (int32_t)(opts->samp_freq * 0.001f * opts->frame_shift_ms);
+  if (opts == nullptr) {
+    return 0;
+  }
+
+  float shift = opts->samp_freq * 0.001f * opts->frame_shift_ms;
+  if (!(shift > 0.0f) || shift > (float)INT32_MAX) {
+    return 0;
+  }
+  return (int32_t)shift;
 }
 
 int32_t knf_window_size(const knf_frame_opts *opts) {
-  return (int32_t)(opts->samp_freq * 0.001f * opts->frame_length_ms);
+  if (opts == nullptr) {
+    return 0;
+  }
+
+  float length = opts->samp_freq * 0.001f * opts->frame_length_ms;
+  if (!(length > 0.0f) || length > (float)INT32_MAX) {
+    return 0;
+  }
+  return (int32_t)length;
 }
 
 int32_t knf_padded_window_size(const knf_frame_opts *opts) {
+  if (opts == nullptr) {
+    return 0;
+  }
+
   int32_t raw = knf_window_size(opts);
+  if (raw <= 0) {
+    return 0;
+  }
   return opts->round_to_power_of_two ? knf_round_up_power_of_two(raw) : raw;
 }
 
 static bool knf_window_match(const char *type, const char *target) {
-  return strncmp(type, target, 15) == 0;
+  return knf_fixed_cstr_eq(type, 16, target);
 }
 
 [[nodiscard]] bool knf_make_window(const char *window_type, int32_t window_size,
                                    float blackman_coeff, knf_window *out) {
-  if (window_type == nullptr || out == nullptr || window_size <= 0)
+  if (out == nullptr) {
     return false;
+  }
+
+  out->data = nullptr;
+  out->size = 0;
+  if (window_type == nullptr || window_size <= 0) return false;
   out->data = (float *)calloc((size_t)window_size, sizeof(float));
-  if (out->data == nullptr)
-    return false;
+  if (out->data == nullptr) return false;
   out->size = window_size;
 
   auto a = 2.0 * KNF_PI / (window_size > 1 ? window_size - 1 : 1);
@@ -93,6 +145,9 @@ static bool knf_window_match(const char *type, const char *target) {
 
 [[nodiscard]] bool knf_make_window_from_opts(const knf_frame_opts *opts,
                                              knf_window *out) {
+  if (opts == nullptr || out == nullptr) {
+    return false;
+  }
   return knf_make_window(opts->window_type, knf_window_size(opts),
                          opts->blackman_coeff, out);
 }
@@ -106,7 +161,8 @@ void knf_free_window(knf_window *window) {
 }
 
 void knf_apply_window(const knf_window *window, float *wave) {
-  if (window == nullptr || window->data == nullptr)
+  if (window == nullptr || window->data == nullptr || wave == nullptr ||
+      window->size <= 0)
     return;
   for (int32_t i = 0; i < window->size; ++i) {
     wave[i] *= window->data[i];
@@ -114,12 +170,20 @@ void knf_apply_window(const knf_window *window, float *wave) {
 }
 
 int64_t knf_first_sample_of_frame(int32_t frame, const knf_frame_opts *opts) {
+  if (frame < 0 || opts == nullptr) {
+    return -1;
+  }
+
   int64_t frame_shift = knf_window_shift(opts);
+  int32_t window_size = knf_window_size(opts);
+  if (frame_shift <= 0 || window_size <= 0) {
+    return -1;
+  }
   if (opts->snip_edges) {
     return (int64_t)frame * frame_shift;
   }
   int64_t midpoint = frame_shift * frame + frame_shift / 2;
-  return midpoint - knf_window_size(opts) / 2;
+  return midpoint - window_size / 2;
 }
 
 int32_t knf_num_frames(int64_t num_samples, const knf_frame_opts *opts,
@@ -130,17 +194,21 @@ int32_t knf_num_frames(int64_t num_samples, const knf_frame_opts *opts,
     return 0;
   }
   if (opts->snip_edges) {
-    if (num_samples < frame_length)
+    if (num_samples < frame_length) return 0;
+    int64_t frames = 1 + (num_samples - frame_length) / frame_shift;
+    if (frames > INT32_MAX) {
       return 0;
-    return 1 + (int32_t)((num_samples - frame_length) / frame_shift);
+    }
+    return (int32_t)frames;
   }
 
-  int32_t num_frames =
-      (int32_t)((num_samples + (frame_shift / 2)) / frame_shift);
-  if (flush)
-    return num_frames;
-  if (num_frames <= 0)
+  int64_t num_frames64 = (num_samples + (frame_shift / 2)) / frame_shift;
+  if (num_frames64 > INT32_MAX) {
     return 0;
+  }
+  int32_t num_frames = (int32_t)num_frames64;
+  if (flush) return num_frames;
+  if (num_frames <= 0) return 0;
 
   int64_t end_sample =
       knf_first_sample_of_frame(num_frames - 1, opts) + frame_length;
@@ -161,14 +229,20 @@ static float knf_rand_uniform() {
                                       const knf_window *window_function,
                                       float *window,
                                       float *log_energy_pre_window) {
-  KNF_CHECK(sample_offset >= 0);
-  KNF_CHECK(wave != nullptr);
-  if (wave_size <= 0)
+  if (sample_offset < 0 || wave == nullptr || opts == nullptr ||
+      window == nullptr || wave_size <= 0 || frame_index < 0) {
     return false;
+  }
   int32_t frame_length = knf_window_size(opts);
   int32_t frame_length_padded = knf_padded_window_size(opts);
+  if (frame_length <= 0 || frame_length_padded < frame_length) {
+    return false;
+  }
   int64_t num_samples = sample_offset + wave_size;
   int64_t start_sample = knf_first_sample_of_frame(frame_index, opts);
+  if (start_sample < 0) {
+    return false;
+  }
   int64_t end_sample = start_sample + frame_length;
 
   if (opts->snip_edges) {
@@ -209,7 +283,13 @@ static float knf_rand_uniform() {
 void knf_process_window(const knf_frame_opts *opts,
                         const knf_window *window_function, float *window,
                         float *log_energy_pre_window) {
+  if (opts == nullptr || window == nullptr) {
+    return;
+  }
   int32_t window_size = knf_window_size(opts);
+  if (window_size <= 0) {
+    return;
+  }
 
   if (opts->dither != 0.0f) {
     for (int32_t i = 0; i < window_size; ++i) {
@@ -219,11 +299,9 @@ void knf_process_window(const knf_frame_opts *opts,
 
   if (opts->remove_dc_offset) {
     double sum = 0.0;
-    for (int32_t i = 0; i < window_size; ++i)
-      sum += window[i];
+    for (int32_t i = 0; i < window_size; ++i) sum += window[i];
     float mean = (float)(sum / window_size);
-    for (int32_t i = 0; i < window_size; ++i)
-      window[i] -= mean;
+    for (int32_t i = 0; i < window_size; ++i) window[i] -= mean;
   }
 
   if (opts->preemph_coeff != 0.0f) {
@@ -238,19 +316,25 @@ void knf_process_window(const knf_frame_opts *opts,
 
   if (log_energy_pre_window != nullptr) {
     float energy = 0.0f;
-    for (int32_t i = 0; i < window_size; ++i)
-      energy += window[i] * window[i];
-    if (energy < 1e-10f)
-      energy = 1e-10f;
+    for (int32_t i = 0; i < window_size; ++i) energy += window[i] * window[i];
+    if (energy < 1e-10f) energy = 1e-10f;
     *log_energy_pre_window = logf(energy);
   }
 
-  if (window_function) {
+  if (window_function != nullptr && window_function->data != nullptr &&
+      window_function->size > 0) {
+    if (window_function->size > window_size) {
+      return;
+    }
     knf_apply_window(window_function, window);
   }
 }
 
 float knf_inner_product(const float *a, const float *b, int32_t n) {
+  if (a == nullptr || b == nullptr || n <= 0) {
+    return 0.0f;
+  }
+
   double s = 0.0;
   for (int32_t i = 0; i < n; ++i) {
     s += (double)a[i] * (double)b[i];

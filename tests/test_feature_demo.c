@@ -32,11 +32,10 @@ int main() {
   knf_fbank_opts_default(&opts);
   opts.frame_opts.dither = 0.0f;
   opts.frame_opts.window_type[0] = '\0';
-  strncpy(opts.frame_opts.window_type, "hann",
-          sizeof(opts.frame_opts.window_type));
+  memcpy(opts.frame_opts.window_type, "hann", sizeof("hann"));
   opts.mel_opts.num_bins = 23;
-  opts.use_energy = false; // match python demo (no energy column)
-  opts.raw_energy = false; // not used when use_energy=false
+  opts.use_energy = false;  // match python demo (no energy column)
+  opts.raw_energy = false;  // not used when use_energy=false
 
   knf_fbank_computer comp;
   assert(knf_fbank_computer_create(&opts, &comp));
@@ -53,7 +52,7 @@ int main() {
     return 1;
   }
 
-  float offline[frames_to_check][32]; // num_bins=23 so 32 is safe
+  float offline[frames_to_check][32];  // num_bins=23 so 32 is safe
   memset(offline, 0, sizeof(offline));
 
   for (int frame = 0; frame < frames_to_check; ++frame) {
@@ -67,8 +66,9 @@ int main() {
 
   knf_online_feature online;
   assert(knf_online_fbank_create(&opts, &online));
-  knf_online_accept_waveform(&online, (float)sample_rate, wave, num_samples);
-  knf_online_input_finished(&online);
+  assert(knf_online_accept_waveform(&online, (float)sample_rate, wave,
+                                    num_samples));
+  assert(knf_online_input_finished(&online));
   assert(knf_online_num_frames_ready(&online) >= frames_to_check);
 
   float tol = 1e-3f;
@@ -82,7 +82,7 @@ int main() {
                 "Mismatch at frame %d bin %d: online=%f offline=%f diff=%f\n",
                 frame, i, on[i], offline[frame][i], diff);
       }
-      assert(diff < 5e-3f); // allow small numeric drift
+      assert(diff < 5e-3f);  // allow small numeric drift
     }
   }
 
