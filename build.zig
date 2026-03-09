@@ -1,6 +1,12 @@
 const std = @import("std");
 
-const c_flags = [_][]const u8{"-std=c23"};
+const c_flags = [_][]const u8{
+    "-std=c23",
+    "-Wall",
+    "-Wextra",
+    "-Wpedantic",
+    "-Werror",
+};
 
 const core_sources = [_][]const u8{
     "src/log.c",

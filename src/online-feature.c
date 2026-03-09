@@ -318,7 +318,7 @@ void knf_online_feature_destroy(knf_online_feature *f) {
     if ((size_t)next_cap > SIZE_MAX / sizeof(float)) {
       return false;
     }
-    auto *new_waveform =
+    auto new_waveform =
         (float *)realloc(f->waveform, sizeof(float) * (size_t)next_cap);
     if (new_waveform == nullptr) {
       return false;

@@ -86,38 +86,44 @@ static void knf_pad_constant(const float *data, int32_t n, int32_t pad,
   }
   memset(out, 0, sizeof(*out));
 
+  bool ok = false;
+  knf_window window = {nullptr, 0};
+  bool owns_window = false;
+  knf_rfft *fft = nullptr;
+  float *padded = nullptr;
+  float *frame = nullptr;
+
   if (cfg == nullptr || data == nullptr || n <= 0 || cfg->n_fft <= 0 ||
       cfg->hop_length <= 0 || cfg->win_length <= 0 ||
       cfg->win_length > cfg->n_fft || (cfg->n_fft & 1) != 0) {
-    return false;
+    goto cleanup;
   }
   if (cfg->window_override.size < 0 || cfg->window_override.size > cfg->n_fft) {
-    return false;
+    goto cleanup;
   }
   if (cfg->window_override.size > 0 && cfg->window_override.data == nullptr) {
-    return false;
+    goto cleanup;
   }
 
-  knf_window window = cfg->window_override;
-  bool owns_window = false;
+  window = cfg->window_override;
   if (window.size == 0) {
     owns_window =
         knf_make_window(cfg->window_type, cfg->win_length, 0.42f, &window);
-    if (!owns_window) return false;
+    if (!owns_window) {
+      goto cleanup;
+    }
   }
 
-  int32_t pad = cfg->center ? cfg->n_fft / 2 : 0;
-  int64_t padded_len64 = (int64_t)n + (int64_t)2 * pad;
+  auto pad = cfg->center ? cfg->n_fft / 2 : 0;
+  auto padded_len64 = (int64_t)n + (int64_t)2 * pad;
   if (padded_len64 <= 0 || padded_len64 > INT32_MAX) {
-    if (owns_window) knf_free_window(&window);
-    return false;
+    goto cleanup;
   }
-  int32_t padded_len = (int32_t)padded_len64;
-  float *padded =
+  auto padded_len = (int32_t)padded_len64;
+  padded =
       (float *)calloc((size_t)(padded_len > 0 ? padded_len : 1), sizeof(float));
   if (padded == nullptr) {
-    if (owns_window) knf_free_window(&window);
-    return false;
+    goto cleanup;
   }
 
   if (cfg->center) {
@@ -135,58 +141,33 @@ static void knf_pad_constant(const float *data, int32_t n, int32_t pad,
     memcpy(padded, data, sizeof(float) * n);
   }
 
-  int64_t num_frames = 1 + ((int64_t)n - cfg->n_fft) / cfg->hop_length;
+  auto num_frames = (int64_t)1 + ((int64_t)n - cfg->n_fft) / cfg->hop_length;
   if (num_frames <= 0 || num_frames > INT32_MAX) {
-    free(padded);
-    if (owns_window) knf_free_window(&window);
-    return false;
+    goto cleanup;
   }
 
-  knf_rfft *fft = knf_rfft_create(cfg->n_fft, false);
+  fft = knf_rfft_create(cfg->n_fft, false);
   if (fft == nullptr) {
-    free(padded);
-    if (owns_window) knf_free_window(&window);
-    return false;
+    goto cleanup;
   }
 
-  int32_t bins = cfg->n_fft / 2 + 1;
+  auto bins = cfg->n_fft / 2 + 1;
   if ((size_t)num_frames > SIZE_MAX / (size_t)bins) {
-    free(padded);
-    knf_rfft_destroy(fft);
-    if (owns_window) knf_free_window(&window);
-    return false;
+    goto cleanup;
   }
-  size_t spec_elems = (size_t)num_frames * (size_t)bins;
+  auto spec_elems = (size_t)num_frames * (size_t)bins;
   out->real = (float *)calloc(spec_elems, sizeof(float));
   out->imag = (float *)calloc(spec_elems, sizeof(float));
   out->num_frames = (int32_t)num_frames;
   out->n_fft = cfg->n_fft;
 
   if (out->real == nullptr || out->imag == nullptr) {
-    free(out->real);
-    free(out->imag);
-    out->real = nullptr;
-    out->imag = nullptr;
-    out->num_frames = 0;
-    out->n_fft = 0;
-    free(padded);
-    knf_rfft_destroy(fft);
-    if (owns_window) knf_free_window(&window);
-    return false;
+    goto cleanup;
   }
 
-  float *frame = (float *)calloc((size_t)cfg->n_fft, sizeof(float));
+  frame = (float *)calloc((size_t)cfg->n_fft, sizeof(float));
   if (frame == nullptr) {
-    free(out->real);
-    free(out->imag);
-    out->real = nullptr;
-    out->imag = nullptr;
-    out->num_frames = 0;
-    out->n_fft = 0;
-    free(padded);
-    knf_rfft_destroy(fft);
-    if (owns_window) knf_free_window(&window);
-    return false;
+    goto cleanup;
   }
   for (int32_t i = 0; i < out->num_frames; ++i) {
     memcpy(frame, data + i * cfg->hop_length, sizeof(float) * cfg->n_fft);
@@ -194,12 +175,7 @@ static void knf_pad_constant(const float *data, int32_t n, int32_t pad,
       knf_apply_window(&window, frame);
     }
     if (!knf_rfft_compute(fft, frame)) {
-      free(frame);
-      free(padded);
-      knf_rfft_destroy(fft);
-      knf_stft_result_free(out);
-      if (owns_window) knf_free_window(&window);
-      return false;
+      goto cleanup;
     }
     for (int32_t k = 0; k < cfg->n_fft / 2; ++k) {
       if (k == 0) {
@@ -213,18 +189,26 @@ static void knf_pad_constant(const float *data, int32_t n, int32_t pad,
   }
 
   if (cfg->normalized) {
-    float scale = 1.0f / sqrtf((float)cfg->n_fft);
+    auto scale = 1.0f / sqrtf((float)cfg->n_fft);
     for (int64_t i = 0; i < (int64_t)num_frames * bins; ++i) {
       out->real[i] *= scale;
       out->imag[i] *= scale;
     }
   }
 
+  ok = true;
+
+cleanup:
   free(frame);
   free(padded);
   knf_rfft_destroy(fft);
-  if (owns_window) knf_free_window(&window);
-  return true;
+  if (owns_window) {
+    knf_free_window(&window);
+  }
+  if (!ok) {
+    knf_stft_result_free(out);
+  }
+  return ok;
 }
 
 void knf_stft_result_free(knf_stft_result *res) {

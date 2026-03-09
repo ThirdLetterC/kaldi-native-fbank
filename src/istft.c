@@ -29,6 +29,14 @@ void knf_istft_config_default(knf_istft_config *cfg) {
                                      const knf_stft_result *stft,
                                      float **out_samples,
                                      int32_t *num_samples) {
+  bool ok = false;
+  float *samples = nullptr;
+  float *denom = nullptr;
+  knf_window window = {nullptr, 0};
+  bool owns_window = false;
+  knf_rfft *fft = nullptr;
+  float *frame = nullptr;
+
   if (out_samples == nullptr || num_samples == nullptr) {
     return false;
   }
@@ -53,28 +61,24 @@ void knf_istft_config_default(knf_istft_config *cfg) {
     return false;
   }
 
-  int32_t n_fft = cfg->n_fft;
-  int32_t hop = cfg->hop_length;
-  int32_t frames = stft->num_frames;
-  int32_t bins = n_fft / 2 + 1;
+  auto n_fft = cfg->n_fft;
+  auto hop = cfg->hop_length;
+  auto frames = stft->num_frames;
+  auto bins = n_fft / 2 + 1;
 
   if (frames <= 0) return false;
 
-  int64_t total64 = (int64_t)n_fft + (int64_t)(frames - 1) * hop;
+  auto total64 = (int64_t)n_fft + (int64_t)(frames - 1) * hop;
   if (total64 <= 0 || total64 > INT32_MAX) {
     return false;
   }
-  int32_t total = (int32_t)total64;
-  float *samples = (float *)calloc((size_t)total, sizeof(float));
-  float *denom = (float *)calloc((size_t)total, sizeof(float));
+  auto total = (int32_t)total64;
+  samples = (float *)calloc((size_t)total, sizeof(float));
+  denom = (float *)calloc((size_t)total, sizeof(float));
   if (samples == nullptr || denom == nullptr) {
-    free(samples);
-    free(denom);
-    return false;
+    goto cleanup;
   }
 
-  knf_window window = {nullptr, 0};
-  bool owns_window = false;
   if (cfg->window != nullptr && cfg->window_size > 0) {
     window.data = cfg->window;
     window.size = cfg->window_size;
@@ -82,30 +86,21 @@ void knf_istft_config_default(knf_istft_config *cfg) {
     owns_window =
         knf_make_window(cfg->window_type, cfg->win_length, 0.42f, &window);
     if (!owns_window) {
-      free(samples);
-      free(denom);
-      return false;
+      goto cleanup;
     }
   }
 
-  knf_rfft *fft = knf_rfft_create(n_fft, true);
+  fft = knf_rfft_create(n_fft, true);
   if (fft == nullptr) {
-    if (owns_window) knf_free_window(&window);
-    free(samples);
-    free(denom);
-    return false;
+    goto cleanup;
   }
 
-  float *frame = (float *)calloc((size_t)n_fft, sizeof(float));
+  frame = (float *)calloc((size_t)n_fft, sizeof(float));
   if (frame == nullptr) {
-    if (owns_window) knf_free_window(&window);
-    free(samples);
-    free(denom);
-    knf_rfft_destroy(fft);
-    return false;
+    goto cleanup;
   }
-  float inv_n = 1.0f / (float)n_fft;
-  float pre_scale = cfg->normalized ? sqrtf((float)n_fft) : 1.0f;
+  auto inv_n = 1.0f / (float)n_fft;
+  auto pre_scale = cfg->normalized ? sqrtf((float)n_fft) : 1.0f;
 
   for (int32_t i = 0; i < frames; ++i) {
     const float *real = stft->real + i * bins;
@@ -119,12 +114,7 @@ void knf_istft_config_default(knf_istft_config *cfg) {
     }
 
     if (!knf_rfft_compute(fft, frame)) {
-      free(frame);
-      free(samples);
-      free(denom);
-      knf_rfft_destroy(fft);
-      if (owns_window) knf_free_window(&window);
-      return false;
+      goto cleanup;
     }
     for (int32_t k = 0; k < n_fft; ++k) {
       frame[k] *= inv_n;
@@ -159,18 +149,13 @@ void knf_istft_config_default(knf_istft_config *cfg) {
   }
 
   if (cfg->center) {
-    int32_t cut = n_fft / 2;
-    int32_t trimmed = total - 2 * cut;
+    auto cut = n_fft / 2;
+    auto trimmed = total - 2 * cut;
     if (trimmed < 0) trimmed = 0;
-    size_t alloc = trimmed > 0 ? (size_t)trimmed : 1;
-    float *centered = (float *)calloc(alloc, sizeof(float));
+    auto alloc = trimmed > 0 ? (size_t)trimmed : (size_t)1;
+    auto centered = (float *)calloc(alloc, sizeof(float));
     if (centered == nullptr) {
-      free(frame);
-      free(samples);
-      free(denom);
-      knf_rfft_destroy(fft);
-      if (owns_window) knf_free_window(&window);
-      return false;
+      goto cleanup;
     }
     memcpy(centered, samples + cut, sizeof(float) * (size_t)trimmed);
     free(samples);
@@ -178,12 +163,18 @@ void knf_istft_config_default(knf_istft_config *cfg) {
     total = trimmed;
   }
 
-  free(frame);
-  free(denom);
-  knf_rfft_destroy(fft);
-  if (owns_window) knf_free_window(&window);
-
   *out_samples = samples;
   *num_samples = total;
-  return true;
+  samples = nullptr;
+  ok = true;
+
+cleanup:
+  free(frame);
+  free(samples);
+  free(denom);
+  knf_rfft_destroy(fft);
+  if (owns_window) {
+    knf_free_window(&window);
+  }
+  return ok;
 }
